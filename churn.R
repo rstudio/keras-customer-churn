@@ -6,7 +6,7 @@ library(recipes)
 library(yardstick)
 library(corrr)
 
-setwd('~/Documents/midnightBarber/bizsci/churn/')
+setwd('~/Documents/midnightBarber/bizsci/keras-customer-churn/')
 
 # install_keras()
 
@@ -14,7 +14,7 @@ churn_data_raw <- read_csv("WA_Fn-UseC_-Telco-Customer-Churn.csv")
 
 # Remove unnecessary data
 churn_data_tbl <- churn_data_raw %>%
-    select(-customerID) %>%
+    # select(-customerID) %>%
     drop_na() %>%
     select(Churn, everything())
 
@@ -24,8 +24,11 @@ train_test_split <- initial_split(churn_data_tbl, prop = 0.8)
 train_test_split
 
 # Retrieve train and test sets
-train_tbl <- training(train_test_split)
-test_tbl  <- testing(train_test_split) 
+train_tbl_with_ids <- training(train_test_split)
+test_tbl_with_ids  <- testing(train_test_split)
+
+train_tbl <- select(train_tbl_with_ids, -customerID)
+test_tbl <- select(test_tbl_with_ids, -customerID)
 
 # Determine if log transformation improves correlation 
 # between TotalCharges and Churn
@@ -86,6 +89,11 @@ model_keras %>%
     )
 model_keras
 
+save_model_hdf5(model_keras, 'model_keras_init.hdf5', overwrite = TRUE,
+                include_optimizer = TRUE)
+
+model_keras <- load_model_hdf5('model_keras_init.hdf5', custom_objects = NULL, compile = TRUE)
+
 # Fit the keras model to the training data
 fit_keras <- fit(
     object           = model_keras, 
@@ -93,7 +101,8 @@ fit_keras <- fit(
     y                = y_train_vec,
     batch_size       = 50, 
     epochs           = 35,
-    validation_split = 0.30
+    validation_split = 0.30,
+    verbose = 0
 )
 
 fit_keras
@@ -121,6 +130,8 @@ estimates_keras_tbl <- tibble(
 
 estimates_keras_tbl
 
+
+
 estimates_keras_tbl %>% conf_mat(truth, estimate)
 
 estimates_keras_tbl %>% metrics(truth, estimate)
@@ -136,7 +147,6 @@ tibble(
 # F1-Statistic
 estimates_keras_tbl %>% f_meas(truth, estimate, beta = 1)
 
-
 class(model_keras)
 
 # Setup lime::model_type() function for keras
@@ -151,8 +161,10 @@ predict_model.keras.models.Sequential <- function(x, newdata, type, ...) {
 }
 
 # Test our predict_model() function
-predict_model(x = model_keras, newdata = x_test_tbl, type = 'raw') %>%
+predictions <- predict_model(x = model_keras, newdata = x_test_tbl, type = 'raw') %>%
     tibble::as_tibble()
+
+test_tbl_with_ids$churn_prob <- predictions$Yes
 
 # Run lime() on training set
 explainer <- lime::lime(
@@ -162,7 +174,7 @@ explainer <- lime::lime(
 
 # Run explain() on explainer
 explanation <- lime::explain(
-    x_test_tbl[1:10,], 
+    x_test_tbl[1,], 
     explainer    = explainer, 
     n_labels     = 1, 
     n_features   = 4,
@@ -176,38 +188,3 @@ plot_explanations(explanation) +
     labs(title = "LIME Feature Importance Heatmap",
          subtitle = "Hold Out (Test) Set, First 10 Cases Shown")
 
-# Feature correlations to Churn
-corrr_analysis <- x_train_tbl %>%
-    mutate(Churn = y_train_vec) %>%
-    correlate() %>%
-    focus(Churn) %>%
-    rename(feature = rowname) %>%
-    arrange(abs(Churn)) %>%
-    mutate(feature = as_factor(feature)) 
-corrr_analysis
-
-# Correlation visualization
-corrr_analysis %>%
-    ggplot(aes(x = Churn, y = fct_reorder(feature, desc(Churn)))) +
-    geom_point() +
-    # Positive Correlations - Contribute to churn
-    geom_segment(aes(xend = 0, yend = feature), 
-                 color = palette_light()[[2]], 
-                 data = corrr_analysis %>% filter(Churn > 0)) +
-    geom_point(color = palette_light()[[2]], 
-               data = corrr_analysis %>% filter(Churn > 0)) +
-    # Negative Correlations - Prevent churn
-    geom_segment(aes(xend = 0, yend = feature), 
-                 color = palette_light()[[1]], 
-                 data = corrr_analysis %>% filter(Churn < 0)) +
-    geom_point(color = palette_light()[[1]], 
-               data = corrr_analysis %>% filter(Churn < 0)) +
-    # Vertical lines
-    geom_vline(xintercept = 0, color = palette_light()[[5]], size = 1, linetype = 2) +
-    geom_vline(xintercept = -0.25, color = palette_light()[[5]], size = 1, linetype = 2) +
-    geom_vline(xintercept = 0.25, color = palette_light()[[5]], size = 1, linetype = 2) +
-    # Aesthetics
-    theme_tq() +
-    labs(title = "Churn Correlation Analysis",
-         subtitle = "Positive Correlations (contribute to churn), Negative Correlations (prevent churn)",
-         y = "Feature Importance")

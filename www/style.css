@@ -1,0 +1,102 @@
+.btn, .btn:active, .btn:focus {
+	background-color: #18BC9C !important; 
+	border-color: #18BC9C !important;
+	color: #FFF !important;
+}
+
+.btn:hover {
+	background-color: #FFF !important;
+	border-color: #18BC9C !important;
+	color: #18BC9C !important;
+}
+
+.navbar, .navbar-nav, .navbar-header, navbar-default, .navbar-static-top {
+	background-color: #2C3E50 !important;
+	margin-bottom: 0px;
+	padding-left: 10px;
+	padding-right: 10px;
+	border: None;
+}
+
+.container-fluid {
+	padding-left: 0px;
+	padding-right: 0px;
+}
+
+.navbar-brand {
+	color: #fff !important;
+}
+
+.tab-content {
+	padding-top: 10px;
+	padding-left: 10px;
+	padding-right: 10px;
+	background-color: #fff !important;
+}
+
+.navbar-nav>.active>a {
+	background-color: #2C3E50 !important;
+	color: #fff !important;
+	border-bottom: thick solid #18BC9C;
+}
+
+.navbar-nav>li>a:hover {
+	background-color: #2C3E50 !important;
+	color: #fff !important;
+}
+
+.navbar-nav>li>a {
+	color: #828282 !important;
+}
+
+.navbar-text, .navbar-text>a {
+	float: right;
+	color: #fff !important;
+	margin: 5px;
+}
+
+.rect.highcharts-background {
+	fill: #000;
+}
+
+html {
+	background-color: #fff;
+}
+
+#uri_gif>img {
+	margin: auto;
+	width: 100%;
+}
+
+.btn-loading-container {
+    margin-left: 10px;
+    font-size: 1.2em;
+}
+.btn-done-indicator {
+    color: green;
+}
+.btn-err {
+    margin-top: 10px;
+    color: red;
+}
+
+caption {
+    color: black;
+    font-size: 18px;
+}
+
+.col-sm-8 {
+    padding: 0px;
+}
+
+thead {
+    display:none;
+}
+
+#strategies > div {
+    border: solid;
+    border-radius: 15px;
+    margin-left: 5px;
+    margin-right: 5px;
+    width: 32%;
+}
