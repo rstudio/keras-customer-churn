@@ -15,10 +15,9 @@ library(keras)
 library(corrr)
 library(yardstick)
 
-rm(list = ls())
-load('keras_model_init.RData')
-# model_keras <- load_model_hdf5('model_keras_init.hdf5', custom_objects = NULL, compile = TRUE)
+setwd('~/Documents/midnightBarber/bizsci/keras-customer-churn/')
 
+rm(list = ls())
 # Setup lime::model_type() function for keras
 model_type.keras.models.Sequential <- function(x, ...) {
     return("classification")

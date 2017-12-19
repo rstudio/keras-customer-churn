@@ -89,10 +89,6 @@ caption {
     padding: 0px;
 }
 
-thead {
-    display:none;
-}
-
 #strategies > div {
     border: solid;
     border-radius: 15px;

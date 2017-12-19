@@ -5,41 +5,6 @@ shinyUI(fluidPage(
     tags$head(tags$link(rel = 'stylesheet', type = 'text/css', href = 'style.css')),
     
     navbarPageWithText('Customer Analytics',
-                       tabPanel('Keras Training',
-                                sidebarLayout(
-                                    sidebarPanel(
-                                        h3('ANN Model Parameters'),
-                                        div(style = 'display:inline-block',
-                                            div(style = 'display:inline-block;vertical-align:top;', numericInput('train_prop', 'Training %', .8, .51, .99, .01, width = '100px')),
-                                            div(style = 'display:inline-block;vertical-align:top;', selectInput('optimizer', 'Optimizer', keras_optimizers, 'adam', width = '100px')),
-                                            div(style = 'display:inline-block;vertical-align:top;', selectInput('loss', 'Loss', keras_losses, 'binary_crossentropy', width = '250px'))
-                                            ),
-                                        h4('First Hidden Layer'),
-                                        div(style = 'display:inline-block',
-                                            div(style = 'display:inline-block;vertical-align:top;', selectInput('first_hidden_layer_activation', 'Activation', keras_activations, 'relu', width = '120px')),
-                                            div(style = 'display:inline-block;vertical-align:top;', selectInput('first_hidden_layer_kernel_initializer', 'Kernel Initializer', keras_initializers, 'uniform', width = '150px')),
-                                            div(style = 'display:inline-block;vertical-align:top;', numericInput('first_hidden_layer_dropout', 'Dropout Rate', .1, 0, 1, .01))
-                                            ),
-                                        h4('Second Hidden Layer'),
-                                        div(style = 'display:inline-block',
-                                            div(style = 'display:inline-block;vertical-align:top;', selectInput('second_hidden_layer_activation', 'Activation', keras_activations, 'relu', width = '120px')),
-                                            div(style = 'display:inline-block;vertical-align:top;', selectInput('second_hidden_layer_kernel_initializer', 'Kernel Initializer', keras_initializers, 'uniform', width = '150px')),
-                                            div(style = 'display:inline-block;vertical-align:top;', numericInput('second_hidden_layer_dropout', 'Dropout Rate', .1, 0, 1, .01))
-                                        ),
-                                        h4('Output Layer'),
-                                        div(style = 'display:inline-block',
-                                            div(style = 'display:inline-block', selectInput('output_layer_activation', 'Activation', keras_activations, 'sigmoid', width = '120px')),
-                                            div(style = 'display:inline-block', selectInput('output_layer_kernel_initializer', 'Kernel Initializer', keras_initializers, 'uniform', width = '150px'))
-                                        ),
-                                        withBusyIndicatorUI(actionButton('run_keras', 'Run Keras', class = 'btn-primary'))
-                                    ),
-                                    mainPanel(
-                                           billboarderOutput('keras_acc_plot', height = '300px'),
-                                           billboarderOutput('keras_loss_plot', height = '300px'),
-                                           tableOutput('model_results_table')
-                                    )
-                                )
-                       ), 
                        tabPanel('Customer Scorecard',
                                 fluidRow(
                                     column(3, uiOutput('customer_id_selector')),
@@ -60,11 +25,46 @@ shinyUI(fluidPage(
                                                    htmlOutput('financial_strategy'),
                                                    width = 4)
                                            ),
-                                           withSpinner(plotOutput('customer_explanation', height = '600px'))
+                                           withSpinner(billboarderOutput('customer_explanation', height = '600px'))
 
                                     )
                                 )
                        ),
+                       tabPanel('Keras Training',
+                                sidebarLayout(
+                                    sidebarPanel(
+                                        h3('ANN Model Parameters'),
+                                        div(style = 'display:inline-block',
+                                            div(style = 'display:inline-block;vertical-align:top;', numericInput('train_prop', 'Training %', .8, .51, .99, .01, width = '100px')),
+                                            div(style = 'display:inline-block;vertical-align:top;', selectInput('optimizer', 'Optimizer', keras_optimizers, 'adam', width = '100px')),
+                                            div(style = 'display:inline-block;vertical-align:top;', selectInput('loss', 'Loss', keras_losses, 'binary_crossentropy', width = '250px'))
+                                        ),
+                                        h4('First Hidden Layer'),
+                                        div(style = 'display:inline-block',
+                                            div(style = 'display:inline-block;vertical-align:top;', selectInput('first_hidden_layer_activation', 'Activation', keras_activations, 'relu', width = '120px')),
+                                            div(style = 'display:inline-block;vertical-align:top;', selectInput('first_hidden_layer_kernel_initializer', 'Kernel Initializer', keras_initializers, 'uniform', width = '150px')),
+                                            div(style = 'display:inline-block;vertical-align:top;', numericInput('first_hidden_layer_dropout', 'Dropout Rate', .1, 0, 1, .01))
+                                        ),
+                                        h4('Second Hidden Layer'),
+                                        div(style = 'display:inline-block',
+                                            div(style = 'display:inline-block;vertical-align:top;', selectInput('second_hidden_layer_activation', 'Activation', keras_activations, 'relu', width = '120px')),
+                                            div(style = 'display:inline-block;vertical-align:top;', selectInput('second_hidden_layer_kernel_initializer', 'Kernel Initializer', keras_initializers, 'uniform', width = '150px')),
+                                            div(style = 'display:inline-block;vertical-align:top;', numericInput('second_hidden_layer_dropout', 'Dropout Rate', .1, 0, 1, .01))
+                                        ),
+                                        h4('Output Layer'),
+                                        div(style = 'display:inline-block',
+                                            div(style = 'display:inline-block', selectInput('output_layer_activation', 'Activation', keras_activations, 'sigmoid', width = '120px')),
+                                            div(style = 'display:inline-block', selectInput('output_layer_kernel_initializer', 'Kernel Initializer', keras_initializers, 'uniform', width = '150px'))
+                                        ),
+                                        withBusyIndicatorUI(actionButton('run_keras', 'Run Keras', class = 'btn-primary'))
+                                    ),
+                                    mainPanel(
+                                        billboarderOutput('keras_acc_plot', height = '300px'),
+                                        billboarderOutput('keras_loss_plot', height = '300px'),
+                                        tableOutput('model_results_table')
+                                    )
+                                )
+                       ), 
                        tabPanel('Churn Analysis',
                                 
                                 sidebarLayout(
@@ -98,8 +98,9 @@ shinyUI(fluidPage(
                                     )
                                 )
                        )
-                       , text = HTML('
-                                     <a href = "http://www.business-science.io/"><img src="business-science-logo.png" height=43px><span style = "font-size:18px"> Business Science</span></a>
+                       , text = HTML(#'<span style = "line-height:50px;font-size:20px">Powered by</span>
+                                    '
+                                     <a href = "http://www.business-science.io/"><img src="business-science-logo.png" height=43px><span style = "font-size:20px;line-height:37px">Business Science</span></a>
                                      <a href = "https://www.rstudio.com"><img src="https://rstudio.com/wp-content/uploads/2014/05/logo-white@2x.png" height=40px></a>
                                      ')
     )
