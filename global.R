@@ -34,6 +34,14 @@ keras_initializers <- c('zeros', 'ones', 'constant', 'random_normal', 'random_un
 keras_optimizers <- c('sgd', 'rmsprop', 'adagrad', 'adadelta', 'adam', 'adamax', 'nadam')
 keras_losses <- c('mean_squared_error', 'mean_absolute_error', 'mean_absolute_percentage_error', 'mean_squared_logarithmic_error', 'categorical_hinge', 'logcosh', 'categorical_crossentropy', 'sparse_categorical_crossentropy', 'binary_crossentropy', 'kullback_leibler_divergence', 'poisson', 'cosine_proximity')
 
+strategy_colors <- c(main = '#f39c12', commercial = '#3498db', financial = '#18bc9c')
+
+main_vars <- c('tenure', 'Contract', 'InternetService', 'MonthlyCharges', 'OnlineBackup', 'OnlineSecurity', 'DeviceProtection', 'TechSupport', 'StreamingMovies', 'PhoneService')
+commercial_vars <- c('InternetService', 'OnlineBackup', 'OnlineSecurity', 'DeviceProtection', 'TechSupport', 'StreamingMovies', 'PhoneService')
+financial_vars <- c('PaymentMethod')
+
+customer_feature_vars <- c(main_vars, commercial_vars, financial_vars) %>% unique
+
 churn_data_raw <- read_csv("WA_Fn-UseC_-Telco-Customer-Churn.csv") %>% 
     mutate(
         tenure_range = case_when(

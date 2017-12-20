@@ -4,6 +4,34 @@ shinyServer(function(input, output, session) {
     model_keras <- load_model_hdf5('model_keras_init.hdf5', custom_objects = NULL, compile = TRUE)
     
     #### Customer Scorecard ####
+    observeEvent(input$strategy_box_hover, {
+        
+        strategy_hover <<- input$strategy_box_hover
+        
+        if (strategy_hover == 'none') {
+            
+            row_indices <- 0
+            
+            output$datatable_rowcolor <- renderUI({
+                tags$style(HTML('table.dataTable tr.selected td, table.dataTable td.selected {background-color: lightblue !important;}'))
+            })
+            
+        } else {
+            
+            strategy_features <- get(paste0(strategy_hover, '_vars'))
+            row_indices <- match(strategy_features, customer_feature_vars)
+            
+            output$datatable_rowcolor <- renderUI({
+                tags$style(HTML('table.dataTable tr.selected td, table.dataTable td.selected {background-color: ', strategy_colors[strategy_hover], '!important;}'))
+            })
+        
+        }
+        
+        DT::dataTableProxy('customer_info_tbl') %>% 
+            DT::selectRows(row_indices)
+            
+    })
+    
     # Update when model is rerun, but initilize with preloaded model on startup
     observeEvent(input$run_keras, {
         
@@ -13,185 +41,179 @@ shinyServer(function(input, output, session) {
         
         output$customer_info_tbl <- DT::renderDataTable({
             
+            req(input$customer_id)
+            
             selected_customer_id <- test_tbl_with_ids$customerID[1]
             selected_customer_id <- input$customer_id
             
-            if (!is.null(selected_customer_id)) {                
-                customer_info <- test_tbl_with_ids %>% 
-                    filter(customerID == selected_customer_id) %>% 
-                    mutate(tenure = paste0(tenure, ifelse(tenure == 1, ' Month', ' Months'))) %>% 
-                    select(tenure, Contract, PaymentMethod, MonthlyCharges, PhoneService, InternetService, OnlineSecurity, OnlineBackup, DeviceProtection, StreamingTV, StreamingMovies) %>% 
-                    gather(metric, value)
-                
-                DT::datatable(customer_info, rownames = NULL, caption = 'Customer Details', options = list(dom = 't', bSort = FALSE))
-            }
+            customer_info <- test_tbl_with_ids %>% 
+                filter(customerID == selected_customer_id) %>% 
+                mutate(tenure = paste0(tenure, ifelse(tenure == 1, ' Month', ' Months'))) %>% 
+                select(customer_feature_vars) %>% 
+                gather(metric, value)
+            
+            DT::datatable(customer_info, rownames = NULL, caption = 'Customer Details', 
+                          options = list(
+                              dom = 't', 
+                              bSort = FALSE, 
+                              paging = FALSE,
+                              initComplete = DT::JS(
+                                  "function(settings, json) {",
+                                  "$(this.api().table().header()).css({'display':'none'});",
+                                  "}")
+                          )
+            )
         })
         
         output$churn_risk <- renderText({
             
+            req(input$customer_id)
+            
             selected_customer_id <- test_tbl_with_ids$customerID[1]
             selected_customer_id <- input$customer_id
             
-            if (!is.null(selected_customer_id)) {                
-                
-                # Test our predict_model() function
-                predictions <- predict_model(x = model_keras, newdata = x_test_tbl, type = 'raw') %>%
-                    tibble::as_tibble()
-                
-                test_tbl_with_ids_predictions <- test_tbl_with_ids %>% 
-                    mutate(churn_prob = predictions$Yes,
-                           churn_risk = case_when(
-                               churn_prob >= .66 ~ 'High',
-                               churn_prob >= .33 ~ 'Medium',
-                               churn_prob >= 0 ~ 'Low',
-                               TRUE ~ ''
-                           ))
-                
-                customer_tbl <- test_tbl_with_ids_predictions %>% 
-                    filter(customerID == selected_customer_id)
-                
-                glue('<h1 style="text-align:center; font-weight:bold;">Customer Churn Risk: {customer_tbl$churn_risk} ({percent(customer_tbl$churn_prob)}) </h1>') %>% HTML
-            }
+            # Test our predict_model() function
+            predictions <- predict_model(x = model_keras, newdata = x_test_tbl, type = 'raw') %>%
+                tibble::as_tibble()
+            
+            test_tbl_with_ids_predictions <- test_tbl_with_ids %>% 
+                mutate(churn_prob = predictions$Yes,
+                       churn_risk = case_when(
+                           churn_prob >= .66 ~ 'High',
+                           churn_prob >= .33 ~ 'Medium',
+                           churn_prob >= 0 ~ 'Low',
+                           TRUE ~ ''
+                       ))
+            
+            customer_tbl <- test_tbl_with_ids_predictions %>% 
+                filter(customerID == selected_customer_id)
+            
+            glue('<h1 style="text-align:center; font-weight:bold;">Customer Churn Risk: {customer_tbl$churn_risk} ({percent(customer_tbl$churn_prob)}) </h1>') %>% HTML
         })
-        
-        # output$risk_customers <- renderBillboarder({
-        # 
-        #     billboarder() %>% 
-        #         bb_scatterplot(
-        #             data = test_tbl_with_ids_predictions,
-        #             mapping = bbaes(x = TotalCharges, y = churn_prob)
-        #         )
-        # 
-        #     billboarder() %>%
-        #         bb_barchart(
-        #             data = test_tbl_with_ids_predictions,
-        #             mapping = bbaes(x = customerID, y = churn_prob),
-        #             rotated = T
-        #         )
-        # })
         
         output$customer_explanation <- renderBillboarder({
             
+            req(input$customer_id)
+            
             selected_customer_id <- test_tbl_with_ids$customerID[1]
             selected_customer_id <- input$customer_id
             
-            if (!is.null(selected_customer_id)) {                
-                
-                # Run lime() on training set
-                explainer <- lime(
-                    x              = x_train_tbl, 
-                    model        = model_keras, 
-                    bin_continuous = FALSE)
-                
-                customer_index <- test_tbl_with_ids %>% 
-                    mutate(rownum = row_number()) %>% 
-                    filter(customerID == selected_customer_id) %>%
-                    select(rownum)
-                
-                # Run explain() on explainer
-                set.seed(42)
-                explanation <- explain(
-                    x_test_tbl[customer_index$rownum, ], 
-                    explainer    = explainer, 
-                    n_labels     = 1, 
-                    n_features   = length(x_test_tbl),
-                    kernel_width = 0.5)
-                
-                type_pal <- c("Supports", "Contradicts")
-                explanation$type <- factor(ifelse(sign(explanation$feature_weight) == 
-                                                      1, type_pal[1], type_pal[2]), levels = type_pal)
-                description <- paste0(explanation$case, "_", explanation$label)
-                desc_width <- max(nchar(description)) + 1
-                description <- paste0(format(description, width = desc_width), 
-                                      explanation$feature_desc)
-                explanation$description <- factor(description, levels = description[order(abs(explanation$feature_weight))])
-                explanation$case <- factor(explanation$case, unique(explanation$case))
+            # Run lime() on training set
+            explainer <- lime(
+                x              = x_train_tbl, 
+                model        = model_keras, 
+                bin_continuous = FALSE)
             
-                explanation_plot_df <- explanation %>%
-                    mutate(churn_predictor = case_when(
-                        (label == 'Yes' & type == 'Supports') | (label == 'No' & type == 'Contradicts') ~ 'More likely to churn',
-                        (label == 'Yes' & type == 'Contradicts') | (label == 'No' & type == 'Supports') ~ 'Less likely to churn'
-                    )) %>%
-                    arrange(-abs(feature_weight)) %>% 
-                    head(20)
-
-                billboarder() %>%
-                    bb_barchart(
-                        data = explanation_plot_df,
-                        mapping = bbaes(x = feature_desc, y = feature_weight, group = churn_predictor),
-                        rotated = TRUE,
-                        stacked = TRUE
-                    ) %>%
-                    bb_colors_manual('Less likely to churn' = 'green', 'More likely to churn' = 'red') %>%
-                    bb_title(text = glue('Feature contributions to churn, calculated with LIME'))
-            }
+            customer_index <- test_tbl_with_ids %>% 
+                mutate(rownum = row_number()) %>% 
+                filter(customerID == selected_customer_id) %>%
+                select(rownum)
+            
+            # Run explain() on explainer
+            set.seed(42)
+            explanation <- explain(
+                x_test_tbl[customer_index$rownum, ], 
+                explainer    = explainer, 
+                n_labels     = 1, 
+                n_features   = length(x_test_tbl),
+                kernel_width = 0.5)
+            
+            type_pal <- c("Supports", "Contradicts")
+            explanation$type <- factor(ifelse(sign(explanation$feature_weight) == 
+                                                  1, type_pal[1], type_pal[2]), levels = type_pal)
+            description <- paste0(explanation$case, "_", explanation$label)
+            desc_width <- max(nchar(description)) + 1
+            description <- paste0(format(description, width = desc_width), 
+                                  explanation$feature_desc)
+            explanation$description <- factor(description, levels = description[order(abs(explanation$feature_weight))])
+            explanation$case <- factor(explanation$case, unique(explanation$case))
+            
+            explanation_plot_df <- explanation %>%
+                mutate(churn_predictor = case_when(
+                    (label == 'Yes' & type == 'Supports') | (label == 'No' & type == 'Contradicts') ~ 'More likely to churn',
+                    (label == 'Yes' & type == 'Contradicts') | (label == 'No' & type == 'Supports') ~ 'Less likely to churn'
+                )) %>%
+                arrange(-abs(feature_weight)) %>% 
+                head(20)
+            
+            billboarder() %>%
+                bb_barchart(
+                    data = explanation_plot_df,
+                    mapping = bbaes(x = feature_desc, y = feature_weight, group = churn_predictor),
+                    rotated = TRUE,
+                    stacked = TRUE
+                ) %>%
+                bb_colors_manual('Less likely to churn' = 'green', 'More likely to churn' = 'red') %>%
+                bb_title(text = glue('Feature contributions to churn, calculated with LIME'))
+            
         })
         
         output$main_strategy <- renderText({
             
+            req(input$customer_id)
+            
             selected_customer_id <- test_tbl_with_ids$customerID[1]
             selected_customer_id <- input$customer_id
             
-            if (!is.null(selected_customer_id)) {                
-                customer_tbl <- test_tbl_with_ids %>% 
-                    filter(customerID == selected_customer_id)
-                
-                if (customer_tbl$tenure <= 9) {
-                    main_strategy <- 'Retain until one year'
-                } else if (customer_tbl$tenure > 9 | customer_tbl$Contract == 'Month-to-month') {
-                    main_strategy <- 'Upsell to annual contract'
-                } else if (customer_tbl$tenure > 12 & customer_tbl$InternetService == 'No') {
-                    main_strategy <- 'Offer internet service'
-                } else if (customer_tbl$tenure > 18 & customer_tbl$MonthlyCharges > 50) {
-                    main_strategy <- 'Offer discount in monthly rate'
-                } else if (customer_tbl$tenure > 12 & customer_tbl$Contract != 'Month-to-month' & ((customer_tbl$OnlineBackup == 'No' & customer_tbl$OnlineSecurity == 'No' & customer_tbl$DeviceProtection == 'No' & customer_tbl$TechSupport == 'No' & customer_tbl$StreamingMovies == 'No') | customer_tbl$PhoneService == 'No')) {
-                    main_strategy <- 'Offer additional services'
-                } else {
-                    main_strategy <- 'Retain and maintain'
-                }
-                paste0('<h2 style = "font-weight:bold;">', main_strategy, '</h2>') %>% HTML
+            customer_tbl <- test_tbl_with_ids %>% 
+                filter(customerID == selected_customer_id)
+            
+            if (customer_tbl$tenure <= 9) {
+                main_strategy <- 'Retain until one year'
+            } else if (customer_tbl$tenure > 9 | customer_tbl$Contract == 'Month-to-month') {
+                main_strategy <- 'Upsell to annual contract'
+            } else if (customer_tbl$tenure > 12 & customer_tbl$InternetService == 'No') {
+                main_strategy <- 'Offer internet service'
+            } else if (customer_tbl$tenure > 18 & customer_tbl$MonthlyCharges > 50) {
+                main_strategy <- 'Offer discount in monthly rate'
+            } else if (customer_tbl$tenure > 12 & customer_tbl$Contract != 'Month-to-month' & ((customer_tbl$OnlineBackup == 'No' & customer_tbl$OnlineSecurity == 'No' & customer_tbl$DeviceProtection == 'No' & customer_tbl$TechSupport == 'No' & customer_tbl$StreamingMovies == 'No') | customer_tbl$PhoneService == 'No')) {
+                main_strategy <- 'Offer additional services'
+            } else {
+                main_strategy <- 'Retain and maintain'
             }
+            paste0('<h2 style = "font-weight:bold;" id = "mainer">', main_strategy, '</h2>') %>% HTML
+            
         })
         
         output$commercial_strategy <- renderText({
             
+            req(input$customer_id)
+            
             selected_customer_id <- test_tbl_with_ids$customerID[1]
             selected_customer_id <- input$customer_id
             
-            if (!is.null(selected_customer_id)) {
-                
-                customer_tbl <- test_tbl_with_ids %>% 
-                    filter(customerID == selected_customer_id)
-                
-                if ((customer_tbl$InternetService == 'DSL' & customer_tbl$OnlineBackup == 'No' & customer_tbl$OnlineSecurity == 'No' & customer_tbl$DeviceProtection == 'No' & customer_tbl$TechSupport == 'No' & customer_tbl$StreamingMovies == 'No') | customer_tbl$PhoneService == 'No') {
-                    commercial_strategy <- 'Offer additional services'
-                } else if (customer_tbl$InternetService == 'Fiber optic') {
-                    commercial_strategy <- 'Offer tech support and services'
-                } else if (customer_tbl$InternetService == 'No') {
-                    commercial_strategy <- 'Upsell to internet service'
-                } else {
-                    commercial_strategy <- 'Retain and maintain'
-                }
-                paste0('<h2 style = "font-weight:bold;">', commercial_strategy, '</h2>') %>% HTML
+            customer_tbl <- test_tbl_with_ids %>% 
+                filter(customerID == selected_customer_id)
+            
+            if ((customer_tbl$InternetService == 'DSL' & customer_tbl$OnlineBackup == 'No' & customer_tbl$OnlineSecurity == 'No' & customer_tbl$DeviceProtection == 'No' & customer_tbl$TechSupport == 'No' & customer_tbl$StreamingMovies == 'No') | customer_tbl$PhoneService == 'No') {
+                commercial_strategy <- 'Offer additional services'
+            } else if (customer_tbl$InternetService == 'Fiber optic') {
+                commercial_strategy <- 'Offer tech support and services'
+            } else if (customer_tbl$InternetService == 'No') {
+                commercial_strategy <- 'Upsell to internet service'
+            } else {
+                commercial_strategy <- 'Retain and maintain'
             }
+            paste0('<h2 style = "font-weight:bold;">', commercial_strategy, '</h2>') %>% HTML
         })
         
         output$financial_strategy <- renderText({
             
+            req(input$customer_id)
+            
             selected_customer_id <- test_tbl_with_ids$customerID[1]
             selected_customer_id <- input$customer_id
             
-            if (!is.null(selected_customer_id)) {
-                customer_tbl <- test_tbl_with_ids %>% 
-                    filter(customerID == selected_customer_id)
-                
-                if (customer_tbl$PaymentMethod %in% c('Mailed Check', 'Electronic Check')) {
-                    financial_strategy <- 'Move to credit card or bank transfer'
-                } else {
-                    financial_strategy <- 'Retain and maintain'
-                }
-                paste0('<h2 style = "font-weight:bold;">', financial_strategy, '</h2>') %>% HTML
+            customer_tbl <- test_tbl_with_ids %>% 
+                filter(customerID == selected_customer_id)
+            
+            if (customer_tbl$PaymentMethod %in% c('Mailed Check', 'Electronic Check')) {
+                financial_strategy <- 'Move to credit card or bank transfer'
+            } else {
+                financial_strategy <- 'Retain and maintain'
             }
+            paste0('<h2 style = "font-weight:bold;">', financial_strategy, '</h2>') %>% HTML
+            
         })
         
         output$model_results_table <- renderTable({
@@ -285,7 +307,6 @@ shinyServer(function(input, output, session) {
                     mapping = bbaes(x = epoch, y = round(value, 4), group = set)
                 ) %>% 
                 bb_colors_manual('training' = '#2c3e50', 'validation' = '#18BC9C') %>% 
-                bb_x_axis(max = 35) %>% 
                 bb_y_axis(max = 1) %>% 
                 bb_title(text = 'Accuracy')
         })
@@ -297,7 +318,6 @@ shinyServer(function(input, output, session) {
                     mapping = bbaes(x = epoch, y = round(value, 4), group = set)
                 ) %>% 
                 bb_colors_manual('training' = '#2c3e50', 'validation' = '#18BC9C') %>% 
-                bb_x_axis(max = 35) %>% 
                 bb_title(text = 'Loss')
         })
     })
@@ -368,7 +388,7 @@ shinyServer(function(input, output, session) {
                 x                = as.matrix(x_train_tbl),
                 y                = y_train_vec,
                 batch_size       = 50,
-                epochs           = 35,
+                epochs           = input$epochs,
                 validation_split = 0.30,
                 verbose = 0
             )
@@ -395,7 +415,7 @@ shinyServer(function(input, output, session) {
             show('keras_acc_plot')
             show('keras_loss_plot')
             
-            for (plot_epoch in 2:35) {
+            for (plot_epoch in 2:input$epochs) {
                 billboarderProxy('keras_acc_plot') %>%
                     bb_linechart(
                         data = filter(plot_df, metric == 'acc', epoch <= plot_epoch),
@@ -512,17 +532,21 @@ shinyServer(function(input, output, session) {
     })
     
     output$churn_rate_tenure <- renderBillboarder({
-        test <<- churn_analysis_data()
         
-        plot_df <<- test %>% 
+        plot_df <- churn_analysis_data() %>% 
             count(tenure_range, Churn) %>% 
             group_by(tenure_range) %>% 
             mutate(pct = round(n / sum(n), 2)) %>% 
             ungroup
         
         plot <- billboarder() %>% 
+            bb_y_grid(
+                lines = list(
+                    list(value = mean(churn_analysis_data()$Churn == 'Yes'), text = "Average Churn Rate")
+                )
+            ) %>% 
             bb_colors_manual('Yes' = '#2c3e50', 'No' = '#18BC9C') %>% 
-            bb_title(text = 'Churn Rate by Tenure Range')
+            bb_title(text = 'Churn Rate by Tenure Range') 
         
         if (nrow(plot_df) == 2) {
             plot_df <- plot_df %>% 
@@ -562,6 +586,11 @@ shinyServer(function(input, output, session) {
                 mapping = bbaes(x = InternetService, y = pct, group = Churn),
                 stacked = TRUE,
                 rotated = TRUE
+            ) %>% 
+            bb_y_grid(
+                lines = list(
+                    list(value = mean(churn_analysis_data()$Churn == 'Yes'), text = "Average Churn Rate")
+                )
             ) %>% 
             bb_y_axis(list(max = 1)) %>% 
             bb_colors_manual('Yes' = '#2c3e50', 'No' = '#18BC9C') %>% 

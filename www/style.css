@@ -89,10 +89,26 @@ caption {
     padding: 0px;
 }
 
+#strategies > div:nth-child(1) {
+    background: #f39c12;
+}
+
+#strategies > div:nth-child(2) {
+    background: #3498db;
+}
+
+#strategies > div:nth-child(3) {
+    background: #18bc9c;
+}
+
 #strategies > div {
     border: solid;
     border-radius: 15px;
-    margin-left: 5px;
-    margin-right: 5px;
+    margin-left: 10px;
+    margin-right: 10px;
     width: 32%;
+}
+
+#strategies > div:hover {
+    box-shadow: 10px 5px 5px grey;
 }
