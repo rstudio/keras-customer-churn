@@ -6,7 +6,7 @@ shinyServer(function(input, output, session) {
     #### Customer Scorecard ####
     observeEvent(input$strategy_box_hover, {
         
-        strategy_hover <<- input$strategy_box_hover
+        strategy_hover <- input$strategy_box_hover
         
         if (strategy_hover == 'none') {
             
@@ -387,7 +387,7 @@ shinyServer(function(input, output, session) {
                 object           = model_keras,
                 x                = as.matrix(x_train_tbl),
                 y                = y_train_vec,
-                batch_size       = 50,
+                batch_size       = input$batch_size,
                 epochs           = input$epochs,
                 validation_split = 0.30,
                 verbose = 0
