@@ -1,7 +1,7 @@
 shinyServer(function(input, output, session) {
     
     load('keras_model_init.RData')
-    model_keras <- load_model_hdf5('model_keras_init.hdf5', custom_objects = NULL, compile = TRUE)
+    model_keras <- load_model_hdf5('model_keras_init.hdf5', custom_objects = NULL, compile = FALSE)
     
     #### Customer Scorecard ####
     observeEvent(input$strategy_box_hover, {
