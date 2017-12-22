@@ -85,7 +85,7 @@ model_keras %>%
     compile(
         optimizer = 'adam',
         loss      = 'binary_crossentropy',
-        metrics   = c('accuracy')
+        metrics   = 'accuracy'
     )
 model_keras
 
@@ -130,14 +130,13 @@ estimates_keras_tbl <- tibble(
 
 estimates_keras_tbl
 
-
-
 estimates_keras_tbl %>% conf_mat(truth, estimate)
 
 estimates_keras_tbl %>% metrics(truth, estimate)
 
 estimates_keras_tbl %>% roc_auc(truth, class_prob)
 
+options(yardstick.event_first = FALSE)
 # Precision
 tibble(
     precision = estimates_keras_tbl %>% precision(truth, estimate),

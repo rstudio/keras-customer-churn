@@ -11,14 +11,15 @@ library(billboarder)
 library(shinyjs)
 library(shinyBS)
 library(lime)
-library(recipes)
-library(keras)
 library(corrr)
 library(yardstick)
-
-setwd('~/Documents/midnightBarber/bizsci/keras-customer-churn/')
+library(keras)
 
 rm(list = ls())
+
+load('keras_model_init.RData')
+model_keras <- load_model_hdf5('model_keras_init.hdf5', custom_objects = NULL, compile = FALSE)
+
 # Setup lime::model_type() function for keras
 model_type.keras.models.Sequential <- function(x, ...) {
     return("classification")
@@ -29,11 +30,6 @@ predict_model.keras.models.Sequential <- function(x, newdata, type, ...) {
     pred <- predict_proba(object = x, x = as.matrix(newdata))
     return(data.frame(Yes = pred, No = 1 - pred))
 }
-
-keras_activations <- c('softmax', 'elu', 'selu', 'softplus', 'softsign', 'relu', 'tanh', 'sigmoid', 'hard_sigmoid', 'linear')
-keras_initializers <- c('zeros', 'ones', 'constant', 'random_normal', 'random_uniform', 'truncated_normal', 'uniform', 'orthogonal', 'identity', 'lecun_normal', 'glorot_normal', 'glorot_uniform', 'he_normal', 'he_uniform', 'lecun_uniform')
-keras_optimizers <- c('sgd', 'rmsprop', 'adagrad', 'adadelta', 'adam', 'adamax', 'nadam')
-keras_losses <- c('mean_squared_error', 'mean_absolute_error', 'mean_absolute_percentage_error', 'mean_squared_logarithmic_error', 'categorical_hinge', 'logcosh', 'categorical_crossentropy', 'sparse_categorical_crossentropy', 'binary_crossentropy', 'kullback_leibler_divergence', 'poisson', 'cosine_proximity')
 
 strategy_colors <- c(main = '#f39c12', commercial = '#3498db', financial = '#18bc9c')
 

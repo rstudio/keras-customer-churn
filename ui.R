@@ -47,51 +47,6 @@ shinyUI(fluidPage(
                                     )
                                 )
                        ),
-                       tabPanel('Keras Training',
-                                sidebarLayout(
-                                    sidebarPanel(
-                                        h3('ANN Model Parameters'),
-                                        div(style = 'display:inline-block',
-                                            div(style = 'display:inline-block;vertical-align:top;', numericInput('train_prop', 'Training %', .8, .51, .99, .01, width = '100px')),       
-                                            bsTooltip('train_prop', 'Proportion of population to split as training set', 'top', options = list(container = 'body')),
-                                            div(style = 'display:inline-block;vertical-align:top;', selectInput('optimizer', 'Optimizer', keras_optimizers, 'adam', width = '100px')),
-                                            bsTooltip('optimizer', 'Method used to value the weights of the neural network to minimize the objective function', 'top', options = list(container = 'body')),
-                                            div(style = 'display:inline-block;vertical-align:top;', selectInput('loss', 'Loss', keras_losses, 'binary_crossentropy', width = '250px')),
-                                            bsTooltip('loss', 'Objective function', 'top', options = list(container = 'body'))
-                                            
-                                        ),
-                                        div(style = 'display:inline-block',
-                                            div(style = 'display:inline-block;vertical-align:top;', selectInput('batch_size', 'Batch size', seq(25, 100, by = 25), 50, width = '100px')),
-                                            bsTooltip('batch_size', 'Number of samples to be propagated through the network', 'top', options = list(container = 'body')),
-                                            div(style = 'display:inline-block;vertical-align:top;', selectInput('epochs', 'Epochs', seq(10, 50, by = 5), 35, width = '100px')),
-                                            bsTooltip('epochs', 'Number of iterations to train the model', 'top', options = list(container = 'body'))
-                                        ),
-                                        h4('First Hidden Layer'),
-                                        div(style = 'display:inline-block',
-                                            div(style = 'display:inline-block;vertical-align:top;', selectInput('first_hidden_layer_activation', 'Activation', keras_activations, 'relu', width = '120px')),
-                                            div(style = 'display:inline-block;vertical-align:top;', selectInput('first_hidden_layer_kernel_initializer', 'Kernel Initializer', keras_initializers, 'uniform', width = '150px')),
-                                            div(style = 'display:inline-block;vertical-align:top;', numericInput('first_hidden_layer_dropout', 'Dropout Rate', .1, 0, 1, .01))
-                                        ),
-                                        h4('Second Hidden Layer'),
-                                        div(style = 'display:inline-block',
-                                            div(style = 'display:inline-block;vertical-align:top;', selectInput('second_hidden_layer_activation', 'Activation', keras_activations, 'relu', width = '120px')),
-                                            div(style = 'display:inline-block;vertical-align:top;', selectInput('second_hidden_layer_kernel_initializer', 'Kernel Initializer', keras_initializers, 'uniform', width = '150px')),
-                                            div(style = 'display:inline-block;vertical-align:top;', numericInput('second_hidden_layer_dropout', 'Dropout Rate', .1, 0, 1, .01))
-                                        ),
-                                        h4('Output Layer'),
-                                        div(style = 'display:inline-block',
-                                            div(style = 'display:inline-block', selectInput('output_layer_activation', 'Activation', keras_activations, 'sigmoid', width = '120px')),
-                                            div(style = 'display:inline-block', selectInput('output_layer_kernel_initializer', 'Kernel Initializer', keras_initializers, 'uniform', width = '150px'))
-                                        ),
-                                        withBusyIndicatorUI(actionButton('run_keras', 'Run Keras', class = 'btn-primary'))
-                                    ),
-                                    mainPanel(
-                                        billboarderOutput('keras_acc_plot', height = '300px'),
-                                        billboarderOutput('keras_loss_plot', height = '300px'),
-                                        tableOutput('model_results_table')
-                                    )
-                                )
-                       ), 
                        tabPanel('Churn Analysis',
                                 
                                 sidebarLayout(
