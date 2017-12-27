@@ -66,10 +66,6 @@ shinyServer(function(input, output, session) {
         selected_customer_id <- test_tbl_with_ids$customerID[1]
         selected_customer_id <- input$customer_id
         
-        # Test our predict_model() function
-        predictions <- predict_model(x = model_keras, newdata = x_test_tbl, type = 'raw') %>%
-            tibble::as_tibble()
-        
         test_tbl_with_ids_predictions <- test_tbl_with_ids %>% 
             mutate(churn_prob = predictions$Yes,
                    churn_risk = case_when(
@@ -94,8 +90,8 @@ shinyServer(function(input, output, session) {
         
         # Run lime() on training set
         explainer <- lime(
-            x = x_train_tbl, 
-            model = model_keras, 
+            x = x_train_tbl,
+            model = model_keras,
             bin_continuous = FALSE)
         
         customer_index <- test_tbl_with_ids %>% 
@@ -112,7 +108,7 @@ shinyServer(function(input, output, session) {
             n_features = length(x_test_tbl),
             kernel_width = 0.5)
         
-        type_pal <- c("Supports", "Contradicts")
+        type_pal <- c('Supports', 'Contradicts')
         explanation$type <- factor(ifelse(sign(explanation$feature_weight) == 
                                               1, type_pal[1], type_pal[2]), levels = type_pal)
         description <- paste0(explanation$case, "_", explanation$label)
@@ -421,23 +417,6 @@ shinyServer(function(input, output, session) {
     })
     
     output$corr_analysis <- renderPlot({
-        train_test_split <- initial_split(select(churn_data_tbl, -customerID), prop = input$train_prop)
-        train_tbl <- training(train_test_split)
-        test_tbl  <- testing(train_test_split)
-        
-        rec_obj <- recipe(Churn ~ ., data = train_tbl) %>%
-            step_discretize(tenure, options = list(cuts = 6)) %>%
-            step_log(TotalCharges) %>%
-            step_dummy(all_nominal(), -all_outcomes()) %>%
-            step_center(all_predictors(), -all_outcomes()) %>%
-            step_scale(all_predictors(), -all_outcomes()) %>%
-            prep(data = train_tbl)
-        
-        x_train_tbl <- bake(rec_obj, newdata = train_tbl) %>% select(-Churn)
-        x_test_tbl  <- bake(rec_obj, newdata = test_tbl) %>% select(-Churn)
-        
-        y_train_vec <- ifelse(pull(train_tbl, Churn) == 'Yes', 1, 0)
-        y_test_vec  <- ifelse(pull(test_tbl, Churn) == 'Yes', 1, 0)
         
         # Feature correlations to Churn
         corrr_analysis <- x_train_tbl %>%

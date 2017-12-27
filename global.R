@@ -12,33 +12,24 @@ library(shinyjs)
 library(shinyBS)
 library(lime)
 library(corrr)
+library(recipes)
 library(yardstick)
 library(keras)
 
 rm(list = ls())
 
-load('keras_model_init.RData')
-model_keras <- load_model_hdf5('model_keras_init.hdf5', custom_objects = NULL, compile = FALSE)
+#### load keras data and model from keras_training.R ####
+load('keras_data.RData')
+model_keras <- load_model_hdf5('keras_model.hdf5', custom_objects = NULL, compile = FALSE)
 
-# Setup lime::model_type() function for keras
-model_type.keras.models.Sequential <- function(x, ...) {
-    return("classification")
-}
-
-# Setup lime::predict_model() function for keras
-predict_model.keras.models.Sequential <- function(x, newdata, type, ...) {
-    pred <- predict_proba(object = x, x = as.matrix(newdata))
-    return(data.frame(Yes = pred, No = 1 - pred))
-}
-
+#### setup customer scorecard inputs ####
 strategy_colors <- c(main = '#f39c12', commercial = '#3498db', financial = '#18bc9c')
-
 main_vars <- c('tenure', 'Contract', 'InternetService', 'MonthlyCharges', 'OnlineBackup', 'OnlineSecurity', 'DeviceProtection', 'TechSupport', 'StreamingMovies', 'PhoneService')
 commercial_vars <- c('InternetService', 'OnlineBackup', 'OnlineSecurity', 'DeviceProtection', 'TechSupport', 'StreamingMovies', 'PhoneService')
 financial_vars <- c('PaymentMethod')
-
 customer_feature_vars <- c(main_vars, commercial_vars, financial_vars) %>% unique
 
+#### transform original dataset ####
 churn_data_raw <- read_csv("WA_Fn-UseC_-Telco-Customer-Churn.csv") %>% 
     mutate(
         tenure_range = case_when(
@@ -61,6 +52,18 @@ churn_data_tbl <- churn_data_raw %>%
     drop_na() %>%
     select(Churn, everything())
 
+#### helper functions ####
+# Setup lime::model_type() function for keras
+model_type.keras.models.Sequential <- function(x, ...) {
+    return("classification")
+}
+
+# Setup lime::predict_model() function for keras
+predict_model.keras.models.Sequential <- function(x, newdata, type, ...) {
+    pred <- predict_proba(object = x, x = as.matrix(newdata))
+    return(data.frame(Yes = pred, No = 1 - pred))
+}
+
 navbarPageWithText <- function(..., text) {
     navbar <- navbarPage(...)
     textEl <- tags$p(class = "navbar-text", text)
@@ -69,7 +72,6 @@ navbarPageWithText <- function(..., text) {
     navbar
 }
 
-########## loading button
 withBusyIndicatorUI <- function(button) {
     id <- button[['attribs']][['id']]
     div(

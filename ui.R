@@ -14,28 +14,13 @@ shinyUI(fluidPage(
                                 ),
                                 fluidRow(
                                     div(id = 'strategies',
-                                        column(4, 
-                                               div(id = 'main', 
-                                                   class = 'strategy_box',
-                                                   h3('Main Strategy'),
-                                                   htmlOutput('main_strategy')
-                                               )
-                                        )
-                                        ,
-                                        column(4,
-                                               div(id = 'commercial', 
-                                                   class = 'strategy_box',
-                                                   h3('Commercial Strategy'),
-                                                   htmlOutput('commercial_strategy')
-                                               )
-                                        ),
-                                        column(4,
-                                               div(id = 'financial', 
-                                                   class = 'strategy_box',
-                                                   h3('Financial Strategy'),
-                                                   htmlOutput('financial_strategy')
-                                               )
-                                        )
+                                        map(names(strategy_colors), function(this_strategy) {
+                                            column(4,
+                                                   div(id = this_strategy,
+                                                       class = 'strategy_box',
+                                                       h3(glue('{Hmisc::capitalize(this_strategy)} Strategy'),
+                                                          htmlOutput(glue('{this_strategy}_strategy')))))
+                                        })
                                     )
                                 ),
                                 fluidRow(

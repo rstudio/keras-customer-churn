@@ -6,15 +6,10 @@ library(recipes)
 library(yardstick)
 library(corrr)
 
-setwd('~/Documents/midnightBarber/bizsci/keras-customer-churn/')
-
-# install_keras()
-
 churn_data_raw <- read_csv("WA_Fn-UseC_-Telco-Customer-Churn.csv")
 
 # Remove unnecessary data
 churn_data_tbl <- churn_data_raw %>%
-    # select(-customerID) %>%
     drop_na() %>%
     select(Churn, everything())
 
@@ -87,12 +82,7 @@ model_keras %>%
         loss      = 'binary_crossentropy',
         metrics   = 'accuracy'
     )
-model_keras
-
-save_model_hdf5(model_keras, 'model_keras_init.hdf5', overwrite = TRUE,
-                include_optimizer = TRUE)
-
-model_keras <- load_model_hdf5('model_keras_init.hdf5', custom_objects = NULL, compile = TRUE)
+save_model_hdf5(model_keras, 'keras_model.hdf5', overwrite = TRUE, include_optimizer = TRUE)
 
 # Fit the keras model to the training data
 fit_keras <- fit(
@@ -104,8 +94,6 @@ fit_keras <- fit(
     validation_split = 0.30,
     verbose = 0
 )
-
-fit_keras
 
 plot(fit_keras) +
     theme_tq() +
@@ -146,8 +134,6 @@ tibble(
 # F1-Statistic
 estimates_keras_tbl %>% f_meas(truth, estimate, beta = 1)
 
-class(model_keras)
-
 # Setup lime::model_type() function for keras
 model_type.keras.models.Sequential <- function(x, ...) {
     return("classification")
@@ -187,3 +173,4 @@ plot_explanations(explanation) +
     labs(title = "LIME Feature Importance Heatmap",
          subtitle = "Hold Out (Test) Set, First 10 Cases Shown")
 
+save(list = ls(), file = 'keras_data.RData')
