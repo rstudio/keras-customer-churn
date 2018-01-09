@@ -10,6 +10,7 @@ library(keras)
 library(flexdashboard)
 library(billboarder)
 library(tidyverse)
+library(scales)
 library(lime)
 library(glue)
 
@@ -84,7 +85,27 @@ gaugeOutput("churn_risk", width = "220px")
 
 ```{r, context="server"}
 output$churn_risk <- renderGauge({
-  gauge(42.3, 0, 100, symbol = "%")
+  
+  req(input$customer_id)
+        
+  selected_customer_id <- test_tbl_with_ids$customerID[1]
+  selected_customer_id <- input$customer_id
+  
+  test_tbl_with_ids_predictions <- test_tbl_with_ids %>% 
+    mutate(churn_prob = predictions$Yes)
+  
+  customer_tbl <- test_tbl_with_ids_predictions %>% 
+    filter(customerID == selected_customer_id)
+        
+  gauge(round(customer_tbl$churn_prob * 100, digits = 1), 
+        min = 0, 
+        max = 100,
+        gaugeSectors(
+          success = c(0,33),
+          warning = c(33, 66),
+          danger = c(67,100)
+        ),
+        symbol = "%")
 })
 ```
 
