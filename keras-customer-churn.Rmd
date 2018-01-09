@@ -1,0 +1,241 @@
+---
+title: "Customer Churn Analytics"
+output:
+  flexdashboard::flex_dashboard: default
+runtime: shiny_prerendered
+---
+
+```{r setup}
+library(keras)
+library(flexdashboard)
+library(billboarder)
+library(tidyverse)
+library(lime)
+library(glue)
+
+
+load('keras_data.RData')
+model_keras <- load_model_hdf5('keras_model.hdf5', custom_objects = NULL, compile = FALSE)
+
+#### setup customer scorecard inputs ####
+main_vars <- c('tenure', 'Contract', 'InternetService', 'MonthlyCharges', 
+               'OnlineBackup', 'OnlineSecurity', 'DeviceProtection', 
+               'TechSupport', 'StreamingMovies', 'PhoneService')
+commercial_vars <- c('InternetService', 'OnlineBackup', 'OnlineSecurity', 
+                     'DeviceProtection', 'TechSupport', 'StreamingMovies', 
+                     'PhoneService')
+financial_vars <- c('PaymentMethod')
+customer_feature_vars <- c(main_vars, commercial_vars, financial_vars) %>% unique
+
+#### transform original dataset ####
+churn_data_raw <- read_csv("WA_Fn-UseC_-Telco-Customer-Churn.csv") %>% 
+  mutate(
+    tenure_range = case_when(
+        tenure < 12 ~ '< 1 Yr',
+        tenure < 24 ~ '1-2 Yrs',
+        tenure < 36 ~ '2-3 Yrs',
+        tenure >= 36 ~ 'Over 3 Yrs',
+        TRUE ~ 'NA'
+    ),
+    monthly_charge_range = case_when(
+        MonthlyCharges < 20 ~ '< 20 per Month',
+        MonthlyCharges < 50 ~ '20-50 per Month',
+        MonthlyCharges < 100 ~ '50-100 per Month',
+        MonthlyCharges >= 100 ~ 'Over 100 per Month',
+        TRUE ~ 'NA'
+    )
+  )
+
+churn_data_tbl <- churn_data_raw %>%
+  drop_na() %>%
+  select(Churn, everything())
+
+
+# Setup lime::model_type() function for keras
+model_type.keras.models.Sequential <- function(x, ...) {
+    return("classification")
+}
+
+# Setup lime::predict_model() function for keras
+predict_model.keras.models.Sequential <- function(x, newdata, type, ...) {
+    pred <- predict_proba(object = x, x = as.matrix(newdata))
+    return(data.frame(Yes = pred, No = 1 - pred))
+}
+```
+
+
+Customer Scorecard {data-orientation=rows}
+===========================================================================
+
+Sidebar {.sidebar}
+----------------------------
+
+#### Customer ID
+
+```{r}
+selectInput('customer_id', NULL, unique(test_tbl_with_ids$customerID))
+```
+
+#### Churn Risk
+
+```{r}
+gaugeOutput("churn_risk", width = "250px")
+```
+
+```{r, context="server"}
+output$churn_risk <- renderGauge({
+  gauge(42.3, 0, 100, symbol = "%")
+})
+```
+
+
+Row
+----------------------------
+
+```{css}
+.value-box .value-output,
+.value-box .caption {
+  font-size: 24px;
+}
+```
+
+### Main Strategy
+
+```{r}
+valueBoxOutput("main")
+```
+
+### Commercial Strategy
+
+```{r}
+valueBoxOutput("commercial")
+```
+
+### Financial Strategy
+
+```{r}
+valueBoxOutput("financial")
+```
+
+```{r, context="server"}
+output$main <- renderValueBox({
+  valueBox("Main Strategy", caption = "Retain until one year", color = "info")
+})
+output$commercial <- renderValueBox({
+  valueBox("Commercial Strategy", caption = "Retain and maintain", color = "primary")
+})
+output$financial <- renderValueBox({
+  valueBox("Financial Strategy", caption = "Retain and maintain", color = "warning")
+})
+
+```
+
+
+Row
+----------------------------
+
+### Customer Details {data-width=33}
+
+```{css}
+.dataTables_wrapper table thead{
+  display:none;
+}
+```
+
+```{r}
+DT::dataTableOutput('customer_info_tbl')
+```
+
+```{r, context="server"}
+output$customer_info_tbl <- DT::renderDataTable({
+        
+  req(input$customer_id)
+  
+  selected_customer_id <- test_tbl_with_ids$customerID[1]
+  selected_customer_id <- input$customer_id
+  
+  customer_info <- test_tbl_with_ids %>% 
+      filter(customerID == selected_customer_id) %>% 
+      mutate(tenure = paste0(tenure, ifelse(tenure == 1, ' Month', ' Months'))) %>% 
+      select(customer_feature_vars) %>% 
+      gather(metric, value)
+  
+  DT::datatable(
+    customer_info, 
+    rownames = NULL, 
+    options = list(
+        dom = 't', 
+        bSort = FALSE, 
+        paging = FALSE
+    )
+  )
+})
+```
+
+### Contributions to Churn (LIME) {data-width=67}
+
+```{r}
+billboarderOutput('customer_explanation')
+```
+
+```{r, context="server"}
+output$customer_explanation <- renderBillboarder({
+     
+  req(input$customer_id)
+  
+  selected_customer_id <- test_tbl_with_ids$customerID[1]
+  selected_customer_id <- input$customer_id
+  
+  # Run lime() on training set
+  explainer <- lime(
+      x = x_train_tbl,
+      model = model_keras,
+      bin_continuous = FALSE)
+  
+  customer_index <- test_tbl_with_ids %>% 
+      mutate(rownum = row_number()) %>% 
+      filter(customerID == selected_customer_id) %>%
+      select(rownum)
+  
+  # Run explain() on explainer
+  set.seed(42)
+  explanation <- explain(
+      x_test_tbl[customer_index$rownum,], 
+      explainer = explainer, 
+      n_labels = 1, 
+      n_features = length(x_test_tbl),
+      kernel_width = 0.5)
+  
+  type_pal <- c('Supports', 'Contradicts')
+  explanation$type <- factor(ifelse(sign(explanation$feature_weight) == 
+                                        1, type_pal[1], type_pal[2]), levels = type_pal)
+  description <- paste0(explanation$case, "_", explanation$label)
+  desc_width <- max(nchar(description)) + 1
+  description <- paste0(format(description, width = desc_width), 
+                        explanation$feature_desc)
+  explanation$description <- factor(description, levels = description[order(abs(explanation$feature_weight))])
+  explanation$case <- factor(explanation$case, unique(explanation$case))
+  
+  explanation_plot_df <- explanation %>%
+      mutate(churn_predictor = case_when(
+          (label == 'Yes' & type == 'Supports') | (label == 'No' & type == 'Contradicts') ~ 'More likely to churn',
+          (label == 'Yes' & type == 'Contradicts') | (label == 'No' & type == 'Supports') ~ 'Less likely to churn'
+      )) %>%
+      arrange(-abs(feature_weight)) %>% 
+      head(20)
+  
+  billboarder() %>%
+      bb_barchart(
+          data = explanation_plot_df,
+          mapping = bbaes(x = feature_desc, y = feature_weight, group = churn_predictor),
+          rotated = TRUE,
+          stacked = TRUE
+      ) %>%
+      bb_colors_manual('Less likely to churn' = 'rgba(63, 182, 24, 0.7)', 'More likely to churn' = 'rgba(255, 0, 57, 0.7)')
+  
+})
+```
+
+Churn Analysis
+===========================================================================
+
