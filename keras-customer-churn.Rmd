@@ -66,10 +66,10 @@ predict_model.keras.models.Sequential <- function(x, newdata, type, ...) {
 
 
 Customer Scorecard {data-orientation=rows}
-===========================================================================
+=============================================================================
 
 Sidebar {.sidebar}
-----------------------------
+-----------------------------------------------------------------------------
 
 #### Customer ID
 
@@ -110,8 +110,8 @@ output$churn_risk <- renderGauge({
 ```
 
 
-Row
-----------------------------
+Strategies
+-----------------------------------------------------------------------------
 
 ```{css}
 .value-box .value-output,
@@ -226,8 +226,8 @@ output$financial_strategy <- renderValueBox({
 ```
 
 
-Row
-----------------------------
+Customer Analysis
+-----------------------------------------------------------------------------
 
 ### Customer Details {data-width=33}
 
