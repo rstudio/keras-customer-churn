@@ -12,15 +12,17 @@ library(keras)
 library(flexdashboard)
 library(billboarder)
 library(tidyverse)
+library(tidyquant)
+library(corrr)
 library(scales)
 library(lime)
 library(glue)
 
-
+# load data an dmobel
 load('keras_data.RData')
-model_keras <- load_model_hdf5('keras_model.hdf5', custom_objects = NULL, compile = FALSE)
+model_keras <- load_model_hdf5('keras_model.hdf5', compile = FALSE)
 
-#### setup customer scorecard inputs ####
+# customer scorecard inputs
 main_vars <- c('tenure', 'Contract', 'InternetService', 'MonthlyCharges', 
                'OnlineBackup', 'OnlineSecurity', 'DeviceProtection', 
                'TechSupport', 'StreamingMovies', 'PhoneService')
@@ -30,39 +32,38 @@ commercial_vars <- c('InternetService', 'OnlineBackup', 'OnlineSecurity',
 financial_vars <- c('PaymentMethod')
 customer_feature_vars <- c(main_vars, commercial_vars, financial_vars) %>% unique
 
-#### transform original dataset ####
+# transform original datasset
 churn_data_raw <- read_csv("WA_Fn-UseC_-Telco-Customer-Churn.csv") %>% 
   mutate(
     tenure_range = case_when(
-        tenure < 12 ~ '< 1 Yr',
-        tenure < 24 ~ '1-2 Yrs',
-        tenure < 36 ~ '2-3 Yrs',
-        tenure >= 36 ~ 'Over 3 Yrs',
-        TRUE ~ 'NA'
+      tenure < 12 ~ '< 1 Yr',
+      tenure < 24 ~ '1-2 Yrs',
+      tenure < 36 ~ '2-3 Yrs',
+      tenure >= 36 ~ 'Over 3 Yrs',
+      TRUE ~ 'NA'
     ),
     monthly_charge_range = case_when(
-        MonthlyCharges < 20 ~ '< 20 per Month',
-        MonthlyCharges < 50 ~ '20-50 per Month',
-        MonthlyCharges < 100 ~ '50-100 per Month',
-        MonthlyCharges >= 100 ~ 'Over 100 per Month',
-        TRUE ~ 'NA'
+      MonthlyCharges < 20 ~ '< 20 per Month',
+      MonthlyCharges < 50 ~ '20-50 per Month',
+      MonthlyCharges < 100 ~ '50-100 per Month',
+      MonthlyCharges >= 100 ~ 'Over 100 per Month',
+      TRUE ~ 'NA'
     )
   )
 
 churn_data_tbl <- churn_data_raw %>%
-  drop_na() %>%
-  select(Churn, everything())
+    drop_na() %>%
+    select(Churn, everything())
 
-
-# Setup lime::model_type() function for keras
+# setup lime::model_type() function for keras
 model_type.keras.models.Sequential <- function(x, ...) {
-    return("classification")
+  return("classification")
 }
 
-# Setup lime::predict_model() function for keras
+# setup lime::predict_model() function for keras
 predict_model.keras.models.Sequential <- function(x, newdata, type, ...) {
-    pred <- predict_proba(object = x, x = as.matrix(newdata))
-    return(data.frame(Yes = pred, No = 1 - pred))
+  pred <- predict_proba(object = x, x = as.matrix(newdata))
+  return(data.frame(Yes = pred, No = 1 - pred))
 }
 ```
 
@@ -99,15 +100,17 @@ output$churn_risk <- renderGauge({
   customer_tbl <- test_tbl_with_ids_predictions %>% 
     filter(customerID == selected_customer_id)
         
-  gauge(round(customer_tbl$churn_prob * 100, digits = 1), 
-        min = 0, 
-        max = 100,
-        gaugeSectors(
-          success = c(0,33),
-          warning = c(33, 66),
-          danger = c(67,100)
-        ),
-        symbol = "%")
+  gauge(
+    round(customer_tbl$churn_prob * 100, digits = 1), 
+    min = 0, 
+    max = 100,
+    gaugeSectors(
+      success = c(0,33),
+      warning = c(33, 66),
+      danger = c(67,100)
+    ),
+    symbol = "%"
+  )
 })
 ```
 
@@ -297,23 +300,25 @@ output$customer_explanation <- renderBillboarder({
   
   # Run lime() on training set
   explainer <- lime(
-      x = x_train_tbl,
-      model = model_keras,
-      bin_continuous = FALSE)
+    x = x_train_tbl,
+    model = model_keras,
+    bin_continuous = FALSE
+  )
   
   customer_index <- test_tbl_with_ids %>% 
-      mutate(rownum = row_number()) %>% 
-      filter(customerID == selected_customer_id) %>%
-      select(rownum)
+    mutate(rownum = row_number()) %>% 
+    filter(customerID == selected_customer_id) %>%
+    select(rownum)
   
   # Run explain() on explainer
   set.seed(42)
   explanation <- explain(
-      x_test_tbl[customer_index$rownum,], 
-      explainer = explainer, 
-      n_labels = 1, 
-      n_features = length(x_test_tbl),
-      kernel_width = 0.5)
+    x_test_tbl[customer_index$rownum,], 
+    explainer = explainer, 
+    n_labels = 1, 
+    n_features = length(x_test_tbl),
+    kernel_width = 0.5
+  )
   
   type_pal <- c('Supports', 'Contradicts')
   explanation$type <- factor(ifelse(sign(explanation$feature_weight) == 
@@ -326,25 +331,306 @@ output$customer_explanation <- renderBillboarder({
   explanation$case <- factor(explanation$case, unique(explanation$case))
   
   explanation_plot_df <- explanation %>%
-      mutate(churn_predictor = case_when(
-          (label == 'Yes' & type == 'Supports') | (label == 'No' & type == 'Contradicts') ~ 'More likely to churn',
-          (label == 'Yes' & type == 'Contradicts') | (label == 'No' & type == 'Supports') ~ 'Less likely to churn'
-      )) %>%
-      arrange(-abs(feature_weight)) %>% 
-      head(20)
+    mutate(churn_predictor = case_when(
+        (label == 'Yes' & type == 'Supports') | (label == 'No' & type == 'Contradicts') ~ 'More likely to churn',
+        (label == 'Yes' & type == 'Contradicts') | (label == 'No' & type == 'Supports') ~ 'Less likely to churn'
+    )) %>%
+    arrange(-abs(feature_weight)) %>% 
+    head(20)
   
   billboarder() %>%
-      bb_barchart(
-          data = explanation_plot_df,
-          mapping = bbaes(x = feature_desc, y = feature_weight, group = churn_predictor),
-          rotated = TRUE,
-          stacked = TRUE
-      ) %>%
-      bb_colors_manual('Less likely to churn' = 'rgba(63, 182, 24, 0.7)', 'More likely to churn' = 'rgba(255, 0, 57, 0.7)')
-  
+    bb_barchart(
+        data = explanation_plot_df,
+        mapping = bbaes(x = feature_desc, y = feature_weight, group = churn_predictor),
+        rotated = TRUE,
+        stacked = TRUE
+    ) %>%
+    bb_colors_manual('Less likely to churn' = 'rgba(63, 182, 24, 0.7)', 'More likely to churn' = 'rgba(255, 0, 57, 0.7)')
 })
 ```
 
-Churn Analysis
-===========================================================================
+Churn Analysis {data-orientation=rows}
+============================================================================
+
+Sidebar {.sidebar}
+----------------------------------------------------------------------------
+
+```{r}
+selectInput('payment_methods', 'Payment Method', 
+            c('All', unique(churn_data_raw$PaymentMethod)))
+
+selectInput('tech_support', 'Tech Support', 
+            c('All', unique(churn_data_raw$TechSupport)))
+
+selectInput('monthly_charge_range', 'Monthly Charge Range', 
+            c('All', unique(churn_data_raw$monthly_charge_range)))
+
+selectInput('tenure_range', 'Tenure Range', 
+            c('All', unique(churn_data_raw$tenure_range)))
+```
+
+```{r, context="server"}
+churn_analysis_data <- reactive({
+  
+  churn_data_filtered <- churn_data_raw
+  
+  if (input$payment_methods != 'All') {
+    churn_data_filtered <- filter(churn_data_filtered, PaymentMethod == input$payment_methods)
+  }
+  
+  if (input$tech_support != 'All') {
+    churn_data_filtered <- filter(churn_data_filtered, TechSupport == input$tech_support)
+  }
+  
+  if (input$monthly_charge_range != 'All') {
+    churn_data_filtered <- filter(churn_data_filtered, monthly_charge_range == input$monthly_charge_range)
+  }
+  
+  if (input$tenure_range != 'All') {
+    churn_data_filtered <- filter(churn_data_filtered, tenure_range == input$tenure_range)
+  }
+  
+  churn_data_filtered
+})
+```
+
+Row 
+----------------------------------------------------------------------------
+
+### Monthly revenue by type of contract
+
+```{r}
+billboarderOutput('monthly_revenue')
+```
+
+```{r, context="server"}
+output$monthly_revenue <- renderBillboarder({
+   
+  plot_df <- churn_analysis_data() %>% 
+    group_by(Churn, Contract) %>% 
+    summarise(monthly_revenue = sum(MonthlyCharges))
+    
+    billboarder() %>% 
+      bb_barchart(
+        data = plot_df,
+        mapping = bbaes(x = Contract, y = monthly_revenue, group = Churn),
+        stacked = TRUE,
+        rotated = TRUE
+      ) %>% 
+      bb_colors_manual('Yes' = '#2c3e50', 'No' = '#18BC9C')
+})
+```
+
+### Number of customers by type of contract
+  
+```{r}
+billboarderOutput('number_of_customers')
+```  
+  
+```{r, context="server"}
+output$number_of_customers <- renderBillboarder({
+    
+  plot_df <- churn_analysis_data() %>% 
+    group_by(Churn, Contract) %>% 
+    summarise(number_of_customers = n())
+    
+    billboarder() %>% 
+      bb_barchart(
+        data = plot_df,
+        mapping = bbaes(x = Contract, y = number_of_customers, group = Churn),
+        stacked = TRUE,
+        rotated = TRUE
+      ) %>% 
+      bb_colors_manual('Yes' = '#2c3e50', 'No' = '#18BC9C')
+})
+```  
+    
+Row 
+----------------------------------------------------------------------------
+    
+### Monthly revenue churn
+    
+```{r}
+billboarderOutput('pct_monthly_revenue')
+```  
+
+```{r, context="server"}
+output$pct_monthly_revenue <- renderBillboarder({
+        
+  plot_df <- isolate(churn_analysis_data()) %>% 
+    group_by(Churn) %>% 
+    summarise(monthly_revenue = sum(MonthlyCharges)) %>% 
+    ungroup %>% 
+    mutate(pct = round(monthly_revenue / sum(monthly_revenue), 2)) %>% 
+    select(-monthly_revenue) %>% 
+    mutate(x = 'Churn') %>% 
+    spread(Churn, pct)
+      
+  billboarder() %>% 
+    bb_barchart(
+      data = plot_df,
+      stacked = TRUE,
+      rotated = TRUE
+    ) %>% 
+    bb_colors_manual('Yes' = '#2c3e50', 'No' = '#18BC9C')
+})
+```
+
+### Customer churn
+    
+```{r}
+billboarderOutput('pct_customers')
+```  
+
+```{r, context="server"}
+output$pct_customers <- renderBillboarder({
+        
+  plot_df <- churn_analysis_data() %>% 
+    group_by(Churn) %>% 
+    summarise(num_customers = n()) %>% 
+    ungroup %>% 
+    mutate(pct = round(num_customers / sum(num_customers), 2)) %>% 
+    select(-num_customers) %>% 
+    mutate(x = 'Churn') %>% 
+    spread(Churn, pct)
+        
+  billboarder() %>% 
+    bb_barchart(
+      data = plot_df,
+      stacked = TRUE,
+      rotated = TRUE
+    ) %>% 
+    bb_colors_manual('Yes' = '#2c3e50', 'No' = '#18BC9C')
+})
+```
+
+Row 
+----------------------------------------------------------------------------
+
+### Churn rate by tenure range    
+    
+```{r}
+billboarderOutput('churn_rate_tenure')
+```  
+
+```{r, context="server"}
+output$churn_rate_tenure <- renderBillboarder({
+    
+  plot_df <- churn_analysis_data() %>% 
+    count(tenure_range, Churn) %>% 
+    group_by(tenure_range) %>% 
+    mutate(pct = round(n / sum(n), 2)) %>% 
+    ungroup
+  
+  plot <- billboarder() %>% 
+    bb_y_grid(
+        lines = list(
+          list(value = mean(churn_analysis_data()$Churn == 'Yes'), text = "Average Churn Rate")
+        )
+    ) %>% 
+    bb_colors_manual('Yes' = '#2c3e50', 'No' = '#18BC9C')
+    
+  if (nrow(plot_df) == 2) {
+    plot_df <- plot_df %>% 
+      select(-n) %>% 
+      spread(Churn, pct)
+    
+    plot <- plot %>% 
+      bb_barchart(
+        data = plot_df,
+        stacked = TRUE,
+        rotated = TRUE
+    )
+  } else {
+    plot <- plot %>% 
+      bb_barchart(
+        data = plot_df,
+        mapping = bbaes(x = tenure_range, y = pct, group = Churn),
+        stacked = TRUE,
+        rotated = TRUE
+      )
+  }
+  
+  plot
+})
+```
+
+### Churn rate by internet service    
+    
+```{r}
+billboarderOutput('churn_rate_internet_service')
+```  
+
+```{r, context="server"}
+output$churn_rate_internet_service <- renderBillboarder({
+  plot_df <- churn_analysis_data() %>% 
+    count(InternetService, Churn) %>% 
+    group_by(InternetService) %>% 
+    mutate(pct = round(n / sum(n), 2))
+  
+  billboarder() %>% 
+    bb_barchart(
+      data = plot_df,
+      mapping = bbaes(x = InternetService, y = pct, group = Churn),
+      stacked = TRUE,
+      rotated = TRUE
+    ) %>% 
+    bb_y_grid(
+      lines = list(
+        list(value = mean(churn_analysis_data()$Churn == 'Yes'), text = "Average Churn Rate")
+      )
+    ) %>% 
+    bb_y_axis(list(max = 1)) %>% 
+    bb_colors_manual('Yes' = '#2c3e50', 'No' = '#18BC9C')
+})
+```
+
+Correlation Analysis
+=============================================================================
+
+```{r}
+plotOutput('corr_analysis')
+```
+
+```{r, context="server"}
+output$corr_analysis <- renderPlot({
+        
+  # Feature correlations to Churn
+  corrr_analysis <- x_train_tbl %>%
+    mutate(Churn = y_train_vec) %>%
+    correlate() %>%
+    focus(Churn) %>%
+    rename(feature = rowname) %>%
+    arrange(abs(Churn)) %>%
+    mutate(feature = as_factor(feature))
+        
+    # Correlation visualization
+  corrr_analysis %>%
+    ggplot(aes(x = Churn, y = fct_reorder(feature, desc(Churn)))) +
+    geom_point() +
+    # Positive Correlations - Contribute to churn
+    geom_segment(aes(xend = 0, yend = feature),
+                 color = palette_light()[[2]],
+                 data = corrr_analysis %>% filter(Churn > 0)) +
+    geom_point(color = palette_light()[[2]],
+               data = corrr_analysis %>% filter(Churn > 0)) +
+    # Negative Correlations - Prevent churn
+    geom_segment(aes(xend = 0, yend = feature),
+                 color = palette_light()[[1]],
+                 data = corrr_analysis %>% filter(Churn < 0)) +
+    geom_point(color = palette_light()[[1]],
+               data = corrr_analysis %>% filter(Churn < 0)) +
+    # Vertical lines
+    geom_vline(xintercept = 0, color = palette_light()[[5]], size = 1, linetype = 2) +
+    geom_vline(xintercept = -0.25, color = palette_light()[[5]], size = 1, linetype = 2) +
+    geom_vline(xintercept = 0.25, color = palette_light()[[5]], size = 1, linetype = 2) +
+    # Aesthetics
+    theme_tq() +
+    labs(title = "Churn Correlation Analysis",
+         subtitle = "Positive Correlations (contribute to churn), Negative Correlations (prevent churn)",
+         y = "Feature Importance")
+})
+```
+
+
 
