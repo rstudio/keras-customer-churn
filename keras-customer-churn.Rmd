@@ -1,7 +1,9 @@
 ---
 title: "Customer Churn Analytics"
 output:
-  flexdashboard::flex_dashboard: default
+  flexdashboard::flex_dashboard: 
+    source_code: https://github.com/rstudio/keras-customer-churn
+    social: ["twitter", "linkedin"]
 runtime: shiny_prerendered
 ---
 
@@ -80,7 +82,7 @@ selectInput('customer_id', NULL, unique(test_tbl_with_ids$customerID))
 #### Churn Risk
 
 ```{r}
-gaugeOutput("churn_risk", width = "220px")
+gaugeOutput("churn_risk", width = "220px", height = "130px")
 ```
 
 ```{r, context="server"}
@@ -108,6 +110,18 @@ output$churn_risk <- renderGauge({
         symbol = "%")
 })
 ```
+
+***
+
+To learn more about the model used by this application, see the blog post [Using Deep Learning With Keras To Predict Customer Churn](https://tensorflow.rstudio.com/blog/keras-customer-churn.html).
+
+***
+
+*Created by:*
+
+![](www/business-science-logo.png){width=24} [Business Science](https://www.business-science.io/)
+
+![](www/rstudio.png){width=24} [RStudio](https://www.rstudio.com)
 
 
 Strategies
