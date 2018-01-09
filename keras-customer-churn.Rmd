@@ -79,7 +79,7 @@ selectInput('customer_id', NULL, unique(test_tbl_with_ids$customerID))
 #### Churn Risk
 
 ```{r}
-gaugeOutput("churn_risk", width = "250px")
+gaugeOutput("churn_risk", width = "220px")
 ```
 
 ```{r, context="server"}
@@ -102,32 +102,106 @@ Row
 ### Main Strategy
 
 ```{r}
-valueBoxOutput("main")
+valueBoxOutput("main_strategy")
+```
+
+```{r, context="server"}
+output$main_strategy <- renderValueBox({
+  
+   req(input$customer_id)
+        
+  selected_customer_id <- test_tbl_with_ids$customerID[1]
+  selected_customer_id <- input$customer_id
+  
+  customer_tbl <- test_tbl_with_ids %>% 
+      filter(customerID == selected_customer_id)
+  
+  if (customer_tbl$tenure <= 9) {
+      main_strategy <- 'Retain until one year'
+  } else if (customer_tbl$tenure > 9 | customer_tbl$Contract == 'Month-to-month') {
+      main_strategy <- 'Upsell to annual contract'
+  } else if (customer_tbl$tenure > 12 & customer_tbl$InternetService == 'No') {
+      main_strategy <- 'Offer internet service'
+  } else if (customer_tbl$tenure > 18 & customer_tbl$MonthlyCharges > 50) {
+      main_strategy <- 'Offer discount in monthly rate'
+  } else if (customer_tbl$tenure > 12 & 
+             customer_tbl$Contract != 'Month-to-month' & 
+             ((customer_tbl$OnlineBackup == 'No' & 
+               customer_tbl$OnlineSecurity == 'No' & 
+               customer_tbl$DeviceProtection == 'No' & 
+               customer_tbl$TechSupport == 'No' & 
+               customer_tbl$StreamingMovies == 'No') 
+              | customer_tbl$PhoneService == 'No')) {
+      main_strategy <- 'Offer additional services'
+  } else {
+      main_strategy <- 'Retain and maintain'
+  }
+  valueBox("Main Strategy", caption = main_strategy, color = "info")
+})
 ```
 
 ### Commercial Strategy
 
 ```{r}
-valueBoxOutput("commercial")
+valueBoxOutput("commercial_strategy")
+```
+
+```{r, context="server"}
+output$commercial_strategy <- renderValueBox({
+  
+  req(input$customer_id)
+        
+  selected_customer_id <- test_tbl_with_ids$customerID[1]
+  selected_customer_id <- input$customer_id
+  
+  customer_tbl <- test_tbl_with_ids %>% 
+      filter(customerID == selected_customer_id)
+  
+  if ((customer_tbl$InternetService == 'DSL' & 
+       customer_tbl$OnlineBackup == 'No' & 
+       customer_tbl$OnlineSecurity == 'No' & 
+       customer_tbl$DeviceProtection == 'No' & 
+       customer_tbl$TechSupport == 'No' & 
+       customer_tbl$StreamingMovies == 'No') 
+      | customer_tbl$PhoneService == 'No') {
+      commercial_strategy <- 'Offer additional services'
+  } else if (customer_tbl$InternetService == 'Fiber optic') {
+      commercial_strategy <- 'Offer tech support and services'
+  } else if (customer_tbl$InternetService == 'No') {
+      commercial_strategy <- 'Upsell to internet service'
+  } else {
+      commercial_strategy <- 'Retain and maintain'
+  }
+  
+  valueBox("Commercial Strategy", caption = commercial_strategy, color = "primary")
+})
 ```
 
 ### Financial Strategy
 
 ```{r}
-valueBoxOutput("financial")
+valueBoxOutput("financial_strategy")
 ```
 
 ```{r, context="server"}
-output$main <- renderValueBox({
-  valueBox("Main Strategy", caption = "Retain until one year", color = "info")
+output$financial_strategy <- renderValueBox({
+  
+  req(input$customer_id)
+        
+  selected_customer_id <- test_tbl_with_ids$customerID[1]
+  selected_customer_id <- input$customer_id
+  
+  customer_tbl <- test_tbl_with_ids %>% 
+      filter(customerID == selected_customer_id)
+  
+  if (customer_tbl$PaymentMethod %in% c('Mailed Check', 'Electronic Check')) {
+    financial_strategy <- 'Move to credit card or bank transfer'
+  } else {
+    financial_strategy <- 'Retain and maintain'
+  }
+  
+  valueBox("Financial Strategy", caption = financial_strategy, color = "warning")
 })
-output$commercial <- renderValueBox({
-  valueBox("Commercial Strategy", caption = "Retain and maintain", color = "primary")
-})
-output$financial <- renderValueBox({
-  valueBox("Financial Strategy", caption = "Retain and maintain", color = "warning")
-})
-
 ```
 
 
