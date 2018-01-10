@@ -136,13 +136,13 @@ estimates_keras_tbl %>% f_meas(truth, estimate, beta = 1)
 
 # Setup lime::model_type() function for keras
 model_type.keras.models.Sequential <- function(x, ...) {
-    return("classification")
+    "classification"
 }
 
 # Setup lime::predict_model() function for keras
 predict_model.keras.models.Sequential <- function(x, newdata, type, ...) {
     pred <- predict_proba(object = x, x = as.matrix(newdata))
-    return(data.frame(Yes = pred, No = 1 - pred))
+    data.frame(Yes = pred, No = 1 - pred)
 }
 
 # Test our predict_model() function
