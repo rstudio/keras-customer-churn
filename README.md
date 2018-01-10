@@ -1,32 +1,34 @@
-# keras-customer-churn
+## keras-customer-churn
 
-This repo contains:
+This repository contains a Shiny application that demonstrates the use of the customer churn model described in the [Using Deep Learning With Keras To Predict Customer Churn](https://tensorflow.rstudio.com/blog/keras-customer-churn.html) blog post.
 
-1. Shiny Application - Mitigate Customer Churn
+![](images/customer_churn.png){width=700 style="border: 1px solid #CCCCCC;"}
 
-2. RMD and supporting files for the [Customer Churn Article](http://www.business-science.io/business/2017/11/28/customer_churn_analysis_keras.html) from the Business Science blog
+### Using the Application
 
-# How to use the shiny app
+To run the application, clone the repository then:
 
-The shiny app has two tabs:
+```r
+rmarkdown::run("customer_churn.Rmd")
+```
 
-1. Customer Scorecard
+The shiny application has three tabs:
 
-2. Churn Analysis
+1) *Customer Scorecard*---Analyzes a single customer at a time. The [keras](https://keras.rstudio.com) model is used to return the probability of customer churn. The app then recommends three strategies to mitigate churn risk:
+    - Main Strategy - Incorporates tenure, contract type, key services, monthly charges to recommend offerings that reduce churn risk
+    - Commercial Strategy - Incorporates specific services that the customer may be interested in
+    - Financial Strategy - Incoporates payment method recommendations to reduce churn
 
-## Customer Scorecard
+2) *Churn Facets*---Analyzes aggregate churn by various features including type of contract, revenue, tenure and internet service. Drop-box filters are available to subset the data and drill into important customer segments. 
+3) *Correlation Analysis*---The correlation analysis shows the features that correlate to churn, which is important for a global perspective of understanding what affects churn.
 
-The customer scorecard anlyzes a single customer at a time. The `keras` model is used to return the probability of customer churn. The app then recommends three strategies to mitigate churn risk:
+### Training the Model
 
-1. Main Strategy - Incorporates tenure, contract type, key services, monthly charges to recommend offerings that reduce churn risk
-2. Commercial Strategy - Incorporates specific services that the customer may be interested in
-3. Financial Strategy - Incoporates payment method recommendations to reduce churn
+Use the `customer_churn.R` script to train the model used by the application from scratch:
 
-## Churn Analysis
+```{r}
+source("customer_churn.R")
+```
 
-The churn analysis aggregates the data to expose general trends. It has two tabs:
 
-1. Customer and revenue - The customer and revenue tab facets churn by various features including type of contract, revenue, tenure and internet service. Drop-box filters are available to subset the data and drill into important customer segments. 
-
-2. Correlation analysis - The correlation analysis shows the features that correlate to churn, which is important for a global perspective of understanding what affects churn.
 

@@ -57,7 +57,7 @@ churn_data_tbl <- churn_data_raw %>%
 
 # setup lime::model_type() function for keras
 model_type.keras.models.Sequential <- function(x, ...) {
-  return("classification")
+  "classification"
 }
 
 # setup lime::predict_model() function for keras
@@ -384,7 +384,7 @@ output$customer_explanation <- renderBillboarder({
 })
 ```
 
-Churn Analysis {data-orientation=rows}
+Churn Facets {data-orientation=rows}
 ============================================================================
 
 Sidebar {.sidebar}
