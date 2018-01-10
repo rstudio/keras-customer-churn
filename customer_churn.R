@@ -6,7 +6,7 @@ library(recipes)
 library(yardstick)
 library(corrr)
 
-churn_data_raw <- read_csv("WA_Fn-UseC_-Telco-Customer-Churn.csv")
+churn_data_raw <- read_csv("data/WA_Fn-UseC_-Telco-Customer-Churn.csv")
 
 # Remove unnecessary data
 churn_data_tbl <- churn_data_raw %>%
@@ -82,10 +82,10 @@ model_keras %>%
         loss      = 'binary_crossentropy',
         metrics   = 'accuracy'
     )
-save_model_hdf5(model_keras, 'keras_model.hdf5', overwrite = TRUE, include_optimizer = TRUE)
+save_model_hdf5(model_keras, 'model/customer_churn.hdf5')
 
 # Fit the keras model to the training data
-fit_keras <- fit(
+history <- fit(
     object           = model_keras, 
     x                = as.matrix(x_train_tbl), 
     y                = y_train_vec,
@@ -95,7 +95,7 @@ fit_keras <- fit(
     verbose = 0
 )
 
-plot(fit_keras) +
+plot(history) +
     theme_tq() +
     scale_color_tq() +
     scale_fill_tq() +
@@ -173,4 +173,4 @@ plot_explanations(explanation) +
     labs(title = "LIME Feature Importance Heatmap",
          subtitle = "Hold Out (Test) Set, First 10 Cases Shown")
 
-save(list = ls(), file = 'keras_data.RData')
+save(list = ls(), file = 'data/customer_churn.RData')

@@ -18,9 +18,9 @@ library(scales)
 library(lime)
 library(glue)
 
-# load data an dmobel
-load('keras_data.RData')
-model_keras <- load_model_hdf5('keras_model.hdf5', compile = FALSE)
+# load data and model
+load('data/customer_churn.RData')
+model_keras <- load_model_hdf5('model/customer_churn.hdf5', compile = FALSE)
 
 # customer scorecard inputs
 main_vars <- c('tenure', 'Contract', 'InternetService', 'MonthlyCharges', 
@@ -33,7 +33,7 @@ financial_vars <- c('PaymentMethod')
 customer_feature_vars <- c(main_vars, commercial_vars, financial_vars) %>% unique
 
 # transform original datasset
-churn_data_raw <- read_csv("WA_Fn-UseC_-Telco-Customer-Churn.csv") %>% 
+churn_data_raw <- read_csv("data/WA_Fn-UseC_-Telco-Customer-Churn.csv") %>% 
   mutate(
     tenure_range = case_when(
       tenure < 12 ~ '< 1 Yr',
@@ -122,9 +122,9 @@ To learn more about the model used by this application, see the blog post [Using
 
 *Created by:*
 
-![](www/business-science-logo.png){width=24} [Business Science](https://www.business-science.io/)
+![](images/business-science-logo.png){width=24} [Business Science](https://www.business-science.io/)
 
-![](www/rstudio.png){width=24} [RStudio](https://www.rstudio.com)
+![](images/rstudio-logo.png){width=24} [RStudio](https://www.rstudio.com)
 
 
 Strategies
