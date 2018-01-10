@@ -244,14 +244,11 @@ output$financial <- renderValueBox({
 
 ```{js}
 $(document).on("shiny:sessioninitialized", function() {
-  $("#section-strategies .value-box").on("mouseenter", 
+  $("#section-strategies .value-box").hover( 
     function(e) {
-      console.log('enter');
       var id = $(this).find(".shiny-valuebox-output").attr('id');
       Shiny.onInputChange("strategy_box_hover", id); 
-    }
-  );
-  $("#section-strategies .value-box").on("mouseleave", 
+    },
     function(e) {
       Shiny.onInputChange("strategy_box_hover", 'none'); 
     }
@@ -271,7 +268,8 @@ table.dataTable thead {
 }
 table.dataTable tr.selected td, 
 table.dataTable td.selected {
-  background-color: aliceblue !important;
+  background-color: #c3dbf7 !important;
+  border-color: #c3dbf7 !important;
 }
 ```
 
