@@ -2,7 +2,7 @@
 
 This repository contains a Shiny application that demonstrates the use of the customer churn model described in the [Using Deep Learning With Keras To Predict Customer Churn](https://tensorflow.rstudio.com/blog/keras-customer-churn.html) blog post.
 
-<kbd><img src="images/customer_churn.png" width=700/></kbd>
+<img src="images/customer_churn.png" width=800/>
 
 ### Using the Application
 
