@@ -56,15 +56,15 @@ churn_data_tbl <- churn_data_raw %>%
   select(Churn, everything())
 
 # setup lime::model_type() function for keras
-model_type.keras.models.Sequential <- function(x, ...) {
+assign("model_type.keras.models.Sequential", envir = globalenv(), function(x, ...) {
   "classification"
-}
+})
 
 # setup lime::predict_model() function for keras
-predict_model.keras.models.Sequential <- function(x, newdata, type, ...) {
+assign("predict_model.keras.models.Sequential", envir = globalenv(), function(x, newdata, type, ...) {
   pred <- predict_proba(object = x, x = as.matrix(newdata))
   data.frame(Yes = pred, No = 1 - pred)
-}
+})
 ```
 
 
