@@ -140,11 +140,11 @@ Strategies
 ### Main Strategy
 
 ```{r}
-valueBoxOutput("main_strategy")
+valueBoxOutput("main")
 ```
 
 ```{r, context="server"}
-output$main_strategy <- renderValueBox({
+output$main <- renderValueBox({
   
    req(input$customer_id)
         
@@ -181,11 +181,11 @@ output$main_strategy <- renderValueBox({
 ### Commercial Strategy
 
 ```{r}
-valueBoxOutput("commercial_strategy")
+valueBoxOutput("commercial")
 ```
 
 ```{r, context="server"}
-output$commercial_strategy <- renderValueBox({
+output$commercial <- renderValueBox({
   
   req(input$customer_id)
         
@@ -218,11 +218,11 @@ output$commercial_strategy <- renderValueBox({
 ### Financial Strategy
 
 ```{r}
-valueBoxOutput("financial_strategy")
+valueBoxOutput("financial")
 ```
 
 ```{r, context="server"}
-output$financial_strategy <- renderValueBox({
+output$financial <- renderValueBox({
   
   req(input$customer_id)
         
@@ -242,6 +242,23 @@ output$financial_strategy <- renderValueBox({
 })
 ```
 
+```{js}
+$(document).on("shiny:sessioninitialized", function() {
+  $("#section-strategies .value-box").on("mouseenter", 
+    function(e) {
+      console.log('enter');
+      var id = $(this).find(".shiny-valuebox-output").attr('id');
+      Shiny.onInputChange("strategy_box_hover", id); 
+    }
+  );
+  $("#section-strategies .value-box").on("mouseleave", 
+    function(e) {
+      Shiny.onInputChange("strategy_box_hover", 'none'); 
+    }
+  );
+});
+
+```
 
 Customer Analysis
 -----------------------------------------------------------------------------
@@ -249,8 +266,12 @@ Customer Analysis
 ### Customer Details {data-width=33}
 
 ```{css}
-.dataTables_wrapper table thead{
+table.dataTable thead {
   display:none;
+}
+table.dataTable tr.selected td, 
+table.dataTable td.selected {
+  background-color: aliceblue !important;
 }
 ```
 
@@ -282,7 +303,23 @@ output$customer_info_tbl <- DT::renderDataTable({
     )
   )
 })
+
+observeEvent(input$strategy_box_hover, {
+    
+  strategy_hover <- input$strategy_box_hover
+        
+  if (strategy_hover == 'none') {
+    row_indices <- 0
+  } else {
+    strategy_features <- get(paste0(strategy_hover, '_vars'))
+    row_indices <- match(strategy_features, customer_feature_vars)
+  }
+  
+  DT::dataTableProxy('customer_info_tbl') %>% 
+    DT::selectRows(row_indices)
+})
 ```
+
 
 ### Contributions to Churn (LIME) {data-width=67}
 
