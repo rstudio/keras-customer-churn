@@ -52,8 +52,8 @@ churn_data_raw <- read_csv("WA_Fn-UseC_-Telco-Customer-Churn.csv") %>%
   )
 
 churn_data_tbl <- churn_data_raw %>%
-    drop_na() %>%
-    select(Churn, everything())
+  drop_na() %>%
+  select(Churn, everything())
 
 # setup lime::model_type() function for keras
 model_type.keras.models.Sequential <- function(x, ...) {
@@ -392,6 +392,10 @@ churn_analysis_data <- reactive({
   
   churn_data_filtered
 })
+
+bb_colors <- function(bb) {
+  bb %>% bb_colors_manual('Yes' = 'rgba(255, 0, 57, 0.7)', 'No' = 'rgba(63, 182, 24, 0.7)')
+}
 ```
 
 Row 
@@ -417,7 +421,7 @@ output$monthly_revenue <- renderBillboarder({
         stacked = TRUE,
         rotated = TRUE
       ) %>% 
-      bb_colors_manual('Yes' = '#2c3e50', 'No' = '#18BC9C')
+      bb_colors()
 })
 ```
 
@@ -441,7 +445,7 @@ output$number_of_customers <- renderBillboarder({
         stacked = TRUE,
         rotated = TRUE
       ) %>% 
-      bb_colors_manual('Yes' = '#2c3e50', 'No' = '#18BC9C')
+      bb_colors()
 })
 ```  
     
@@ -472,7 +476,7 @@ output$pct_monthly_revenue <- renderBillboarder({
       stacked = TRUE,
       rotated = TRUE
     ) %>% 
-    bb_colors_manual('Yes' = '#2c3e50', 'No' = '#18BC9C')
+    bb_colors()
 })
 ```
 
@@ -500,7 +504,7 @@ output$pct_customers <- renderBillboarder({
       stacked = TRUE,
       rotated = TRUE
     ) %>% 
-    bb_colors_manual('Yes' = '#2c3e50', 'No' = '#18BC9C')
+    bb_colors()
 })
 ```
 
@@ -528,7 +532,7 @@ output$churn_rate_tenure <- renderBillboarder({
           list(value = mean(churn_analysis_data()$Churn == 'Yes'), text = "Average Churn Rate")
         )
     ) %>% 
-    bb_colors_manual('Yes' = '#2c3e50', 'No' = '#18BC9C')
+    bb_colors()
     
   if (nrow(plot_df) == 2) {
     plot_df <- plot_df %>% 
@@ -581,7 +585,7 @@ output$churn_rate_internet_service <- renderBillboarder({
       )
     ) %>% 
     bb_y_axis(list(max = 1)) %>% 
-    bb_colors_manual('Yes' = '#2c3e50', 'No' = '#18BC9C')
+    bb_colors()
 })
 ```
 
