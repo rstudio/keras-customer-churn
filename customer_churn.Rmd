@@ -452,10 +452,12 @@ output$monthly_revenue <- renderBillboarder({
     billboarder() %>% 
       bb_barchart(
         data = plot_df,
-        mapping = bbaes(x = Contract, y = monthly_revenue, group = Churn),
+        mapping = bbaes(x = Contract, y = monthly_revenue / 10000, group = Churn),
         stacked = TRUE,
         rotated = TRUE
       ) %>% 
+      bb_y_axis(label = list(text = "Revenue (USD, in thousands)",
+                             position = "outer-top")) %>% 
       bb_colors()
 })
 ```
@@ -480,6 +482,8 @@ output$number_of_customers <- renderBillboarder({
         stacked = TRUE,
         rotated = TRUE
       ) %>% 
+      bb_y_axis(label = list(text = "Customer Count",
+                             position = "outer-top")) %>%
       bb_colors()
 })
 ```  
@@ -511,6 +515,8 @@ output$pct_monthly_revenue <- renderBillboarder({
       stacked = TRUE,
       rotated = TRUE
     ) %>% 
+    bb_y_axis(label = list(text = "Percentage, Monthly Revenue",
+                             position = "outer-top")) %>%
     bb_colors()
 })
 ```
@@ -539,6 +545,8 @@ output$pct_customers <- renderBillboarder({
       stacked = TRUE,
       rotated = TRUE
     ) %>% 
+    bb_y_axis(label = list(text = "Percentage, Customers",
+                             position = "outer-top")) %>%
     bb_colors()
 })
 ```
@@ -567,6 +575,8 @@ output$churn_rate_tenure <- renderBillboarder({
           list(value = mean(churn_analysis_data()$Churn == 'Yes'), text = "Average Churn Rate")
         )
     ) %>% 
+    bb_y_axis(label = list(text = "Percentage, Customers",
+                             position = "outer-top")) %>%
     bb_colors()
     
   if (nrow(plot_df) == 2) {
@@ -587,7 +597,7 @@ output$churn_rate_tenure <- renderBillboarder({
         mapping = bbaes(x = tenure_range, y = pct, group = Churn),
         stacked = TRUE,
         rotated = TRUE
-      )
+      ) 
   }
   
   plot
@@ -619,7 +629,9 @@ output$churn_rate_internet_service <- renderBillboarder({
         list(value = mean(churn_analysis_data()$Churn == 'Yes'), text = "Average Churn Rate")
       )
     ) %>% 
-    bb_y_axis(list(max = 1)) %>% 
+    bb_y_axis(label = list(max = 1, 
+                           text = "Percentage, Customers",
+                           position = "outer-top")) %>%
     bb_colors()
 })
 ```
