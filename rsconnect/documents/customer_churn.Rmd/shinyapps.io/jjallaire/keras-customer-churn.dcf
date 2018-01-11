@@ -5,8 +5,8 @@ account: jjallaire
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 255551
-bundleId: 1170591
+bundleId: 1170994
 url: https://jjallaire.shinyapps.io/keras-customer-churn/
-when: 1515598696.17795
+when: 1515618353.28147
 asMultiple: FALSE
 asStatic: FALSE
