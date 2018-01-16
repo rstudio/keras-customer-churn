@@ -82,7 +82,6 @@ model_keras %>%
         loss      = 'binary_crossentropy',
         metrics   = 'accuracy'
     )
-save_model_hdf5(model_keras, 'model/customer_churn.hdf5')
 
 # Fit the keras model to the training data
 history <- fit(
@@ -94,6 +93,9 @@ history <- fit(
     validation_split = 0.30,
     verbose = 0
 )
+
+# save the model
+save_model_hdf5(model_keras, 'model/customer_churn.hdf5')
 
 plot(history) +
     theme_tq() +
