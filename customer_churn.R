@@ -129,26 +129,26 @@ estimates_keras_tbl %>% roc_auc(truth, class_prob)
 options(yardstick.event_first = FALSE)
 # Precision
 tibble(
-    precision = estimates_keras_tbl %>% precision(truth, estimate),
-    recall    = estimates_keras_tbl %>% recall(truth, estimate)
+    precision = estimates_keras_tbl %>% precision(truth, estimate) %>% select(.estimate) %>% pull,
+    recall    = estimates_keras_tbl %>% recall(truth, estimate)  %>% select(.estimate) %>% pull
 )
 
 # F1-Statistic
 estimates_keras_tbl %>% f_meas(truth, estimate, beta = 1)
 
 # Setup lime::model_type() function for keras
-model_type.keras.models.Sequential <- function(x, ...) {
-    "classification"
+model_type.keras.engine.sequential.Sequential <- function(x, ...) {
+  return("classification")
 }
 
 # Setup lime::predict_model() function for keras
-predict_model.keras.models.Sequential <- function(x, newdata, type, ...) {
-    pred <- predict_proba(object = x, x = as.matrix(newdata))
-    data.frame(Yes = pred, No = 1 - pred)
+predict_model.keras.engine.sequential.Sequential <- function(x, newdata, type, ...) {
+  pred <- predict_proba(object = x, x = as.matrix(newdata))
+  return(data.frame(Yes = pred, No = 1 - pred))
 }
 
 # Test our predict_model() function
-predictions <- predict_model(x = model_keras, newdata = x_test_tbl, type = 'raw') %>%
+predictions <- predict_model(x = model_keras, newdata = as.matrix(x_test_tbl), type = 'raw') %>%
     tibble::as_tibble()
 
 test_tbl_with_ids$churn_prob <- predictions$Yes
