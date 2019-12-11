@@ -17,6 +17,12 @@ library(corrr)
 library(scales)
 library(lime)
 library(glue)
+library(rsample)
+library(recipes)
+library(yardstick)
+library(readr)
+library(ggplot2)
+library(forcats)
 
 # load data and model
 load('data/customer_churn.RData')
@@ -56,12 +62,12 @@ churn_data_tbl <- churn_data_raw %>%
   select(Churn, everything())
 
 # setup lime::model_type() function for keras
-assign("model_type.keras.models.Sequential", envir = globalenv(), function(x, ...) {
+assign("model_type.keras.engine.sequential.Sequential", envir = globalenv(), function(x, ...) {
   "classification"
 })
 
 # setup lime::predict_model() function for keras
-assign("predict_model.keras.models.Sequential", envir = globalenv(), function(x, newdata, type, ...) {
+assign("predict_model.keras.engine.sequential.Sequential", envir = globalenv(), function(x, newdata, type, ...) {
   pred <- predict_proba(object = x, x = as.matrix(newdata))
   data.frame(Yes = pred, No = 1 - pred)
 })
@@ -334,7 +340,7 @@ output$customer_explanation <- renderBillboarder({
   selected_customer_id <- input$customer_id
   
   # Run lime() on training set
-  explainer <- lime(
+  explainer <- lime::lime(
     x = x_train_tbl,
     model = model_keras,
     bin_continuous = FALSE
@@ -685,6 +691,3 @@ output$corr_analysis <- renderPlot({
     })
 })
 ```
-
-
-

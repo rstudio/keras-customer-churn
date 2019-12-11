@@ -5,6 +5,9 @@ library(rsample)
 library(recipes)
 library(yardstick)
 library(corrr)
+library(readr)
+library(ggplot2)
+library(forcats)
 
 churn_data_raw <- read_csv("data/WA_Fn-UseC_-Telco-Customer-Churn.csv")
 
@@ -46,8 +49,8 @@ rec_obj <- recipe(Churn ~ ., data = train_tbl) %>%
     step_scale(all_predictors(), -all_outcomes()) %>%
     prep(data = train_tbl)
 
-x_train_tbl <- bake(rec_obj, newdata = train_tbl) %>% select(-Churn)
-x_test_tbl  <- bake(rec_obj, newdata = test_tbl) %>% select(-Churn)
+x_train_tbl <- bake(rec_obj, new_data = train_tbl) %>% select(-Churn)
+x_test_tbl  <- bake(rec_obj, new_data = test_tbl) %>% select(-Churn)
 
 y_train_vec <- ifelse(pull(train_tbl, Churn) == 'Yes', 1, 0)
 y_test_vec  <- ifelse(pull(test_tbl, Churn) == 'Yes', 1, 0)
@@ -137,12 +140,12 @@ tibble(
 estimates_keras_tbl %>% f_meas(truth, estimate, beta = 1)
 
 # Setup lime::model_type() function for keras
-model_type.keras.models.Sequential <- function(x, ...) {
+model_type.keras.engine.sequential.Sequential <- function(x, ...) {
     "classification"
 }
 
 # Setup lime::predict_model() function for keras
-predict_model.keras.models.Sequential <- function(x, newdata, type, ...) {
+predict_model.keras.engine.sequential.Sequential <- function(x, newdata, type, ...) {
     pred <- predict_proba(object = x, x = as.matrix(newdata))
     data.frame(Yes = pred, No = 1 - pred)
 }
